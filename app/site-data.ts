@@ -30,7 +30,7 @@ export type AppProfile = {
 
 export const siteConfig = {
   siteName: "Ivyfold",
-  supportEmail: null as string | null,
+  supportEmail: "leafia.app.contact@gmail.com" as string | null,
   defaultLanguage: "ja" as Language,
   origin: "https://ivyfold.github.io",
 };

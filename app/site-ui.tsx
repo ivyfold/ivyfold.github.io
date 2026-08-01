@@ -39,6 +39,8 @@ const copy = {
     supportTitle: "よくある質問とサポート",
     supportIntro:
       "まずは下の項目をご確認ください。サポートメールの公開後は、このページから直接お問い合わせいただけます。",
+    supportIntroAvailable:
+      "まずは下の項目をご確認ください。解決しない場合は、ページ下部のメールからお問い合わせいただけます。",
     contactUnavailable: "お問い合わせ窓口は現在準備中です。",
     legalUpdated: "最終更新日：2026年7月29日",
     allApps: "すべてのアプリ",
@@ -80,6 +82,8 @@ const copy = {
     supportTitle: "Questions and support",
     supportIntro:
       "Start with the answers below. Once the public support email is ready, you will be able to contact us directly from this page.",
+    supportIntroAvailable:
+      "Start with the answers below. If you still need help, contact us using the email at the bottom of this page.",
     contactUnavailable: "The contact channel is currently being prepared.",
     legalUpdated: "Last updated: July 29, 2026",
     allApps: "All apps",
@@ -489,7 +493,7 @@ export function SupportPage({
               <h2>{t.supportTitle}</h2>
             </div>
           </div>
-          <p>{t.supportIntro}</p>
+          <p>{siteConfig.supportEmail ? t.supportIntroAvailable : t.supportIntro}</p>
         </header>
         <section className="faq-list" aria-label={t.supportTitle}>
           {app.faq.map((item, index) => (
