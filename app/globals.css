@@ -58,8 +58,91 @@ summary {
 }
 
 .section-shell {
+  position: relative;
   width: var(--section);
   margin-inline: auto;
+}
+
+.decorative-backdrop {
+  position: absolute;
+  z-index: 0;
+  left: 50%;
+  width: 100vw;
+  overflow: hidden;
+  pointer-events: none;
+  transform: translateX(-50%);
+}
+
+.decorative-backdrop::after {
+  position: absolute;
+  inset: 0;
+  content: "";
+}
+
+.decorative-backdrop img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  animation: ambient-float 14s ease-in-out infinite alternate;
+  filter: saturate(0.78) contrast(0.94) brightness(1.03);
+}
+
+.backdrop-hero {
+  top: 0;
+  height: 100%;
+  opacity: 0.78;
+}
+
+.backdrop-hero::after {
+  background:
+    linear-gradient(90deg, rgba(244, 242, 236, 0.28) 0%, rgba(244, 242, 236, 0.08) 50%, rgba(244, 242, 236, 0.12) 100%),
+    linear-gradient(180deg, rgba(244, 242, 236, 0.1), rgba(244, 242, 236, 0.42));
+}
+
+.backdrop-collection {
+  top: 76px;
+  height: 760px;
+  opacity: 0.42;
+  -webkit-mask-image: linear-gradient(180deg, transparent, #000 10%, #000 78%, transparent);
+  mask-image: linear-gradient(180deg, transparent, #000 10%, #000 78%, transparent);
+}
+
+.backdrop-collection::after {
+  background: radial-gradient(circle at center, rgba(244, 242, 236, 0.18), rgba(244, 242, 236, 0.74) 76%);
+}
+
+.backdrop-product {
+  top: 30px;
+  height: 730px;
+  opacity: 0.72;
+  -webkit-mask-image: linear-gradient(180deg, #000 0%, #000 76%, transparent 100%);
+  mask-image: linear-gradient(180deg, #000 0%, #000 76%, transparent 100%);
+}
+
+.backdrop-product::after {
+  background: linear-gradient(90deg, rgba(244, 242, 236, 0.32), rgba(244, 242, 236, 0.08) 54%, rgba(244, 242, 236, 0.18));
+}
+
+.backdrop-quiet {
+  top: 0;
+  height: 760px;
+  opacity: 0.68;
+  -webkit-mask-image: linear-gradient(180deg, #000 0%, #000 72%, transparent 100%);
+  mask-image: linear-gradient(180deg, #000 0%, #000 72%, transparent 100%);
+}
+
+.backdrop-quiet::after {
+  background: linear-gradient(90deg, rgba(244, 242, 236, 0.14), rgba(244, 242, 236, 0.46));
+}
+
+.home-hero > :not(.decorative-backdrop),
+.apps-section > :not(.decorative-backdrop),
+.product-hero > :not(.decorative-backdrop),
+.support-page > :not(.decorative-backdrop),
+.legal-page > :not(.decorative-backdrop),
+.not-found > :not(.decorative-backdrop) {
+  position: relative;
+  z-index: 1;
 }
 
 .site-header {
@@ -238,87 +321,8 @@ summary {
   transform: rotate(-45deg);
 }
 
-.hero-art {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-}
-
-.hero-leaf {
-  position: absolute;
-  top: 98px;
-  right: 5%;
-  width: 218px;
-  height: 300px;
-  opacity: 0.62;
-  transform: rotate(14deg);
-}
-
-.hero-leaf::before {
-  position: absolute;
-  top: 20px;
-  left: 50%;
-  width: 1px;
-  height: 270px;
-  background: rgba(40, 112, 69, 0.5);
-  content: "";
-  transform: rotate(8deg);
-}
-
-.hero-leaf i {
-  position: absolute;
-  width: 94px;
-  height: 156px;
-  background: linear-gradient(140deg, rgba(164, 205, 159, 0.78), rgba(50, 137, 85, 0.15));
-  border: 1px solid rgba(67, 133, 82, 0.28);
-  border-radius: 100% 0 100% 0;
-  filter: blur(0.2px);
-}
-
-.hero-leaf i:nth-child(1) {
-  top: 0;
-  left: 12px;
-  transform: rotate(-28deg);
-}
-
-.hero-leaf i:nth-child(2) {
-  top: 96px;
-  right: 8px;
-  transform: scaleX(-1) rotate(-20deg);
-}
-
-.hero-leaf i:nth-child(3) {
-  bottom: 0;
-  left: 0;
-  transform: rotate(-35deg) scale(0.78);
-}
-
-.hero-game-grid {
-  position: absolute;
-  right: 14%;
-  bottom: 48px;
-  display: grid;
-  width: 112px;
-  aspect-ratio: 1;
-  grid-template-columns: 1fr 1fr;
-  gap: 9px;
-  opacity: 0.48;
-  transform: rotate(-7deg);
-}
-
-.hero-game-grid i {
-  border: 1px solid rgba(34, 85, 116, 0.3);
-  border-radius: 18px;
-  background: rgba(191, 228, 235, 0.32);
-  box-shadow: inset 0 0 20px rgba(60, 192, 234, 0.12);
-}
-
-.hero-game-grid i:nth-child(2),
-.hero-game-grid i:nth-child(3) {
-  background: linear-gradient(145deg, rgba(75, 207, 243, 0.3), rgba(126, 83, 255, 0.16));
-}
-
 .apps-section {
+  position: relative;
   padding: 144px 0 130px;
   border-top: 1px solid var(--line);
 }
@@ -633,9 +637,8 @@ summary {
   border: 1px solid rgba(72, 93, 87, 0.2);
   border-radius: 34px;
   background:
-    radial-gradient(circle at 75% 40%, rgba(64, 192, 221, 0.14), transparent 28%),
-    radial-gradient(circle at 90% 76%, rgba(123, 87, 232, 0.12), transparent 28%),
-    linear-gradient(145deg, #e7eee7, #ecedf0);
+    linear-gradient(90deg, rgba(247, 245, 239, 0.93), rgba(247, 245, 239, 0.56)),
+    url("/assets/brand/collection-paper-light-v2.webp") center / cover;
   overflow: hidden;
 }
 
@@ -696,7 +699,7 @@ summary {
   bottom: 55px;
   width: 46px;
   height: 46px;
-  background: linear-gradient(145deg, rgba(55, 199, 239, 0.58), rgba(129, 81, 245, 0.46));
+  background: rgba(255, 255, 255, 0.66);
 }
 
 .site-footer {
@@ -1433,6 +1436,15 @@ summary {
   }
 }
 
+@keyframes ambient-float {
+  from {
+    transform: scale(1.015) translate3d(0, 0, 0);
+  }
+  to {
+    transform: scale(1.025) translate3d(0, -7px, 0);
+  }
+}
+
 @media (max-width: 980px) {
   :root {
     --section: min(100% - 40px, 900px);
@@ -1575,18 +1587,41 @@ summary {
     margin-top: 36px;
   }
 
-  .hero-leaf {
-    top: 240px;
-    right: -70px;
-    width: 170px;
-    opacity: 0.4;
+  .backdrop-hero {
+    width: calc(100vw + 88px);
+    height: 620px;
+    opacity: 0.64;
   }
 
-  .hero-game-grid {
-    right: 2%;
-    bottom: 24px;
-    width: 78px;
-    gap: 6px;
+  .backdrop-hero img {
+    object-position: 64% center;
+  }
+
+  .backdrop-hero::after {
+    background:
+      linear-gradient(90deg, rgba(244, 242, 236, 0.34), rgba(244, 242, 236, 0.12)),
+      linear-gradient(180deg, rgba(244, 242, 236, 0.08), rgba(244, 242, 236, 0.58));
+  }
+
+  .backdrop-collection {
+    top: 54px;
+    height: 920px;
+    opacity: 0.3;
+  }
+
+  .backdrop-product {
+    top: 0;
+    height: 820px;
+    opacity: 0.58;
+  }
+
+  .backdrop-product img {
+    object-position: 62% center;
+  }
+
+  .backdrop-quiet {
+    height: 620px;
+    opacity: 0.54;
   }
 
   .apps-section,
@@ -1730,16 +1765,19 @@ summary {
 
   .product-name {
     margin-top: 34px;
+    gap: 14px;
   }
 
   .product-name h1 {
-    font-size: 3.9rem;
+    min-width: 0;
+    font-size: clamp(2.75rem, 14vw, 3.2rem);
   }
 
   .app-icon-large {
-    width: 76px;
-    height: 76px;
-    border-radius: 19px;
+    width: 66px;
+    height: 66px;
+    flex: 0 0 66px;
+    border-radius: 17px;
   }
 
   .product-copy > h2 {
@@ -1800,12 +1838,26 @@ summary {
     padding: 38px 24px;
   }
 
+  .theme-copy,
+  .theme-samples {
+    min-width: 0;
+  }
+
   .theme-copy h2 {
-    font-size: 2.6rem;
+    max-width: 100%;
+    font-size: 2.25rem;
+    overflow-wrap: anywhere;
   }
 
   .theme-samples {
-    transform: scale(0.72);
+    width: 100%;
+    transform: none;
+  }
+
+  .theme-samples i {
+    width: 76px;
+    margin-left: -22px;
+    border-radius: 17px;
   }
 
   .gallery-heading {

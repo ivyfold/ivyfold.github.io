@@ -94,6 +94,35 @@ function switchLanguagePath(language: Language, segments: string[] = []) {
   return `/${otherLanguage(language)}${segments.length ? `/${segments.join("/")}` : ""}`;
 }
 
+type BackdropVariant = "hero" | "collection" | "product" | "quiet";
+
+const backdropSources: Record<BackdropVariant, string> = {
+  hero: "/assets/brand/hero-paper-light-v2.webp",
+  collection: "/assets/brand/collection-paper-light-v2.webp",
+  product: "/assets/brand/product-paper-light-v2.webp",
+  quiet: "/assets/brand/quiet-paper-light-v2.webp",
+};
+
+export function DecorativeBackdrop({
+  variant,
+  priority = false,
+}: {
+  variant: BackdropVariant;
+  priority?: boolean;
+}) {
+  return (
+    <div className={`decorative-backdrop backdrop-${variant}`} aria-hidden="true">
+      <img
+        src={backdropSources[variant]}
+        alt=""
+        loading={priority ? "eager" : "lazy"}
+        fetchPriority={priority ? "high" : "auto"}
+        decoding="async"
+      />
+    </div>
+  );
+}
+
 export function SiteHeader({
   language,
   segments = [],
@@ -233,6 +262,7 @@ export function HomePage({ language }: { language: Language }) {
       <SiteHeader language={language} />
       <main>
         <section className="home-hero section-shell">
+          <DecorativeBackdrop variant="hero" priority />
           <div className="hero-kicker reveal">
             <span className="kicker-line" />
             {t.homeEyebrow}
@@ -249,22 +279,10 @@ export function HomePage({ language }: { language: Language }) {
               <span>PLAY</span>
             </div>
           </div>
-          <div className="hero-art" aria-hidden="true">
-            <div className="hero-leaf">
-              <i />
-              <i />
-              <i />
-            </div>
-            <div className="hero-game-grid">
-              <i />
-              <i />
-              <i />
-              <i />
-            </div>
-          </div>
         </section>
 
         <section className="apps-section section-shell" id="apps">
+          <DecorativeBackdrop variant="collection" />
           <div className="section-heading">
             <span className="section-index">01</span>
             <p>{t.featured}</p>
@@ -323,6 +341,7 @@ export function AppPage({ language, app }: { language: Language; app: AppProfile
       <SiteHeader language={language} segments={segments} />
       <main className={`app-page app-page-${app.accent}`}>
         <section className="product-hero section-shell">
+          <DecorativeBackdrop variant="product" priority />
           <div className="product-copy reveal">
             <span className="eyebrow">{app.eyebrow[language]}</span>
             <div className="product-name">
@@ -457,6 +476,7 @@ export function SupportPage({
     <>
       <SiteHeader language={language} segments={segments} />
       <main className="support-page section-shell">
+        <DecorativeBackdrop variant="quiet" />
         <header className="page-intro">
           <Link className="breadcrumb" href={`/${language}/apps/${app.slug}`}>
             ← {app.name}
@@ -525,6 +545,7 @@ export function LegalPage({
     <>
       <SiteHeader language={language} segments={segments} />
       <main className="legal-page section-shell">
+        <DecorativeBackdrop variant="quiet" />
         <header className="legal-header">
           <Link className="breadcrumb" href={`/${language}/support/${app.slug}`}>
             ← {app.name} {t.support}
@@ -554,6 +575,7 @@ export function NotFoundPage({ language }: { language: Language }) {
     <>
       <SiteHeader language={language} />
       <main className="not-found section-shell">
+        <DecorativeBackdrop variant="quiet" />
         <span className="eyebrow">404</span>
         <h1>{language === "ja" ? "ページが見つかりません。" : "This page could not be found."}</h1>
         <Link className="button button-primary" href={`/${language}`}>
