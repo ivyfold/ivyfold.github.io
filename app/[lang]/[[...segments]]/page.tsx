@@ -125,7 +125,7 @@ export async function generateMetadata({
       siteName: siteConfig.siteName,
       images: [
         {
-          url: `${origin}/og-v2.png`,
+          url: `${origin}/og-ivyfold-v3.png`,
           width: 1200,
           height: 630,
           alt: siteConfig.siteName,
@@ -136,7 +136,7 @@ export async function generateMetadata({
       card: "summary_large_image",
       title: identity.title,
       description: identity.description,
-      images: [`${origin}/og-v2.png`],
+      images: [`${origin}/og-ivyfold-v3.png`],
     },
   };
 }

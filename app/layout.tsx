@@ -2,7 +2,7 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Ryo Apps",
+  title: "Ivyfold",
   description:
     "Leafia、WidgetPlayなど、個人開発のiOSアプリを紹介する公式サイトです。",
   icons: {

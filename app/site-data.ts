@@ -29,10 +29,10 @@ export type AppProfile = {
 };
 
 export const siteConfig = {
-  siteName: "Ryo Apps",
+  siteName: "Ivyfold",
   supportEmail: null as string | null,
   defaultLanguage: "ja" as Language,
-  origin: "https://ryo-apps.example",
+  origin: "https://ryo-apps.ivy-tsuta.chatgpt.site",
 };
 
 const widgetPrivacy: Record<Language, LegalDocument> = {
