@@ -32,7 +32,7 @@ export const siteConfig = {
   siteName: "Ivyfold",
   supportEmail: null as string | null,
   defaultLanguage: "ja" as Language,
-  origin: "https://ryo-apps.ivy-tsuta.chatgpt.site",
+  origin: "https://ivyfold.github.io",
 };
 
 const widgetPrivacy: Record<Language, LegalDocument> = {

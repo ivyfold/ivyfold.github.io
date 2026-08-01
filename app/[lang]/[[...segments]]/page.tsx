@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 import { AppPage, HomePage, LegalPage, SupportPage } from "../../site-ui";
 import {
@@ -32,16 +31,6 @@ export function generateStaticParams() {
   return supportedLanguages.flatMap((lang) =>
     routeSegments.map((segments) => ({ lang, segments })),
   );
-}
-
-async function requestOrigin() {
-  const requestHeaders = await headers();
-  const host = requestHeaders.get("host");
-  if (!host) return siteConfig.origin;
-  const protocol =
-    requestHeaders.get("x-forwarded-proto") ??
-    (host.startsWith("localhost") || host.startsWith("127.0.0.1") ? "http" : "https");
-  return `${protocol}://${host}`;
 }
 
 function pageIdentity(language: Language, segments: string[]) {
@@ -101,7 +90,7 @@ export async function generateMetadata({
   const identity = pageIdentity(lang, segments);
   if (!identity) return {};
 
-  const origin = await requestOrigin();
+  const origin = siteConfig.origin;
   const pathname = `/${lang}${segments.length ? `/${segments.join("/")}` : ""}`;
   const otherLanguage = lang === "ja" ? "en" : "ja";
   const otherPath = `/${otherLanguage}${segments.length ? `/${segments.join("/")}` : ""}`;
