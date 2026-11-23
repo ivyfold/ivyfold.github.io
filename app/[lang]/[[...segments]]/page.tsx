@@ -19,8 +19,10 @@ const routeSegments = [
   [],
   ["apps", "leafia"],
   ["apps", "widgetplay"],
+  ["apps", "studyseed"],
   ["support", "leafia"],
   ["support", "widgetplay"],
+  ["support", "studyseed"],
   ["privacy", "leafia"],
   ["privacy", "widgetplay"],
   ["terms", "leafia"],
@@ -36,14 +38,8 @@ export function generateStaticParams() {
 function pageIdentity(language: Language, segments: string[]) {
   const isJapanese = language === "ja";
   if (segments.length === 0) {
-    return {
-      title: isJapanese
-        ? `${siteConfig.siteName} — 暮らしと遊びに、小さな心地よさを。`
-        : `${siteConfig.siteName} — Small moments of ease, for life and play.`,
-      description: isJapanese
-        ? "Leafia、WidgetPlayなど、個人開発のiOSアプリを紹介する公式サイトです。"
-        : "The official home of independent iOS apps including Leafia and WidgetPlay.",
-    };
+    const { title, description } = siteConfig.home[language];
+    return { title: `${siteConfig.siteName} | ${title}`, description };
   }
 
   const [section, appSlug] = segments;
@@ -64,6 +60,7 @@ function pageIdentity(language: Language, segments: string[]) {
     };
   }
   if (section === "privacy" || section === "terms") {
+    if (!app[section]) return null;
     const label =
       section === "privacy"
         ? isJapanese
@@ -90,42 +87,47 @@ export async function generateMetadata({
   const identity = pageIdentity(lang, segments);
   if (!identity) return {};
 
-  const origin = siteConfig.origin;
-  const pathname = `/${lang}${segments.length ? `/${segments.join("/")}` : ""}`;
+  const { origin } = siteConfig;
+  const sectionPath = segments.length ? `/${segments.join("/")}` : "";
+  const trailingSlash = process.env.GITHUB_PAGES === "1" ? "/" : "";
+  const pathname = `/${lang}${sectionPath}${trailingSlash}`;
   const otherLanguage = lang === "ja" ? "en" : "ja";
-  const otherPath = `/${otherLanguage}${segments.length ? `/${segments.join("/")}` : ""}`;
+  const otherPath = `/${otherLanguage}${sectionPath}${trailingSlash}`;
+  const socialImage = origin ? `${origin}/assets/museum/ivy-rotunda.jpg` : null;
 
   return {
     title: identity.title,
     description: identity.description,
-    alternates: {
-      canonical: `${origin}${pathname}`,
-      languages: {
-        ja: `${origin}${lang === "ja" ? pathname : otherPath}`,
-        en: `${origin}${lang === "en" ? pathname : otherPath}`,
+    ...(origin && {
+      alternates: {
+        canonical: `${origin}${pathname}`,
+        languages: {
+          ja: `${origin}${lang === "ja" ? pathname : otherPath}`,
+          en: `${origin}${lang === "en" ? pathname : otherPath}`,
+        },
       },
-    },
+    }),
     openGraph: {
       title: identity.title,
       description: identity.description,
       type: "website",
       locale: lang === "ja" ? "ja_JP" : "en_US",
-      url: `${origin}${pathname}`,
       siteName: siteConfig.siteName,
-      images: [
-        {
-          url: `${origin}/og-ivyfold-v3.png`,
-          width: 1200,
-          height: 630,
+      ...(origin && { url: `${origin}${pathname}` }),
+      ...(socialImage && {
+        images: [{
+          url: socialImage,
+          width: 1536,
+          height: 1024,
           alt: siteConfig.siteName,
-        },
-      ],
+        }],
+      }),
     },
     twitter: {
       card: "summary_large_image",
       title: identity.title,
       description: identity.description,
-      images: [`${origin}/og-ivyfold-v3.png`],
+      ...(socialImage && { images: [socialImage] }),
     },
   };
 }
@@ -150,6 +152,7 @@ export default async function LocalizedRoute({
   if (section === "apps") return <AppPage language={language} app={app} />;
   if (section === "support") return <SupportPage language={language} app={app} />;
   if (section === "privacy" || section === "terms") {
+    if (!app[section]) notFound();
     return <LegalPage language={language} app={app} kind={section} />;
   }
 

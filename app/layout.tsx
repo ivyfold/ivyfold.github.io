@@ -1,13 +1,15 @@
 import type { Metadata, Viewport } from "next";
+import { siteConfig } from "./site-data";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Ivyfold",
-  description:
-    "Leafia、WidgetPlayなど、個人開発のiOSアプリを紹介する公式サイトです。",
+  ...(siteConfig.origin && { metadataBase: new URL(siteConfig.origin) }),
+  title: siteConfig.siteName,
+  description: siteConfig.home[siteConfig.defaultLanguage].description,
+  ...(siteConfig.isPreview && { robots: { index: false, follow: false } }),
   icons: {
-    icon: "/assets/widgetplay/icon.png",
-    apple: "/assets/widgetplay/icon.png",
+    icon: "/favicon.svg",
+    apple: "/favicon.svg",
   },
 };
 

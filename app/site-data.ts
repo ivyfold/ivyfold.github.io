@@ -1,7 +1,8 @@
 import leafiaLegal from "./leafia-legal.json";
+import { studySeed } from "./studyseed-data";
 
 export type Language = "ja" | "en";
-export type AppSlug = "leafia" | "widgetplay";
+export type AppSlug = "leafia" | "widgetplay" | "studyseed";
 
 export type LocalizedText = Record<Language, string>;
 
@@ -18,21 +19,57 @@ export type AppProfile = {
   summary: LocalizedText;
   platform: LocalizedText;
   icon: string;
-  accent: "leafia" | "widgetplay";
+  accent: AppSlug;
   appStoreUrl: string | null;
-  screenshots: Array<{ src: string; alt: LocalizedText }>;
+  status?: LocalizedText;
+  screenshotNotice?: LocalizedText;
+  screenshots: Array<{ src: string; srcEn?: string; alt: LocalizedText }>;
   features: Array<{ title: LocalizedText; body: LocalizedText; mark: string }>;
   facts: Array<LocalizedText>;
   faq: Array<{ question: LocalizedText; answer: LocalizedText }>;
-  privacy: Record<Language, LegalDocument>;
-  terms: Record<Language, LegalDocument>;
+  privacy?: Record<Language, LegalDocument>;
+  terms?: Record<Language, LegalDocument>;
 };
 
+const isPreview = process.env.SITE_PREVIEW === "1";
+const previewOrigin = "http://127.0.0.1:4184";
+
+function siteOrigin(): string | null {
+  const configured = process.env.SITE_ORIGIN?.trim();
+  if (!configured) return isPreview ? previewOrigin : null;
+
+  const url = new URL(configured);
+  if (
+    !["https:", "http:"].includes(url.protocol) ||
+    url.username ||
+    url.password ||
+    url.pathname !== "/" ||
+    url.search ||
+    url.hash
+  ) {
+    throw new Error("SITE_ORIGIN must be an absolute HTTP or HTTPS origin.");
+  }
+  return url.origin;
+}
+
 export const siteConfig = {
-  siteName: "Ivyfold",
+  siteName: "ivy develop",
   supportEmail: "leafia.app.contact@gmail.com" as string | null,
   defaultLanguage: "ja" as Language,
-  origin: "https://ivyfold.github.io",
+  origin: siteOrigin(),
+  isPreview,
+  home: {
+    ja: {
+      title: "iPhoneアプリの作品集",
+      description:
+        "日常を少し楽しくする、iPhoneアプリ。観葉植物のお世話、ホーム画面のミニゲーム、読書の記録。作ったアプリを、小さな美術館に並べました。",
+    },
+    en: {
+      title: "A collection of iPhone apps",
+      description:
+        "iPhone apps to make everyday life a little more fun. Visit a small museum of apps for plant care, Home Screen games, and reading logs.",
+    },
+  },
 };
 
 const widgetPrivacy: Record<Language, LegalDocument> = {
@@ -254,34 +291,40 @@ export const apps: Record<AppSlug, AppProfile> = {
       ja: "写真、水やり予定、成長の記録をひとつの場所に。植物をよく見る習慣を、やさしい画面で支えます。",
       en: "Keep photos, watering schedules and growth records together—designed to support a thoughtful plant-care routine.",
     },
-    platform: { ja: "iPhone・Widget", en: "iPhone · Widgets" },
+    platform: { ja: "iPhone・iPad・Widget", en: "iPhone · iPad · Widgets" },
     icon: "/assets/leafia/icon.png",
     accent: "leafia",
-    appStoreUrl: null,
+    appStoreUrl: "https://apps.apple.com/app/id6780912421",
     screenshots: [
       {
-        src: "/assets/leafia/plants.jpg",
+        src: "/assets/leafia/interior/ja/plants.jpg",
+        srcEn: "/assets/leafia/interior/en/plants.jpg",
         alt: { ja: "Leafiaの植物一覧", en: "Leafia plant library" },
       },
       {
-        src: "/assets/leafia/today.jpg",
-        alt: { ja: "今日の水やり画面", en: "Today’s watering screen" },
+        src: "/assets/leafia/interior/ja/today-care.jpg",
+        srcEn: "/assets/leafia/interior/en/today-care.jpg",
+        alt: { ja: "コルクボードに並ぶ今日のお世話", en: "Today’s care on a corkboard" },
       },
       {
-        src: "/assets/leafia/detail.jpg",
+        src: "/assets/leafia/interior/ja/calendar.jpg",
+        srcEn: "/assets/leafia/interior/en/calendar.jpg",
+        alt: { ja: "水やり予定を示すカレンダー", en: "Plant care calendar" },
+      },
+      {
+        src: "/assets/leafia/interior/ja/detail.jpg",
+        srcEn: "/assets/leafia/interior/en/detail.jpg",
         alt: { ja: "植物の詳細画面", en: "Plant detail screen" },
       },
       {
-        src: "/assets/leafia/growth.jpg",
-        alt: { ja: "成長記録画面", en: "Growth record screen" },
+        src: "/assets/leafia/interior/ja/statistics.jpg",
+        srcEn: "/assets/leafia/interior/en/statistics.jpg",
+        alt: { ja: "お世話の統計画面", en: "Plant care statistics" },
       },
       {
-        src: "/assets/leafia/stats.jpg",
-        alt: { ja: "水やり統計画面", en: "Watering statistics screen" },
-      },
-      {
-        src: "/assets/leafia/widget.jpg",
-        alt: { ja: "Leafia Widget", en: "Leafia Widget" },
+        src: "/assets/leafia/interior/ja/records.jpg",
+        srcEn: "/assets/leafia/interior/en/records.jpg",
+        alt: { ja: "お世話の記録一覧", en: "Plant care records" },
       },
     ],
     features: [
@@ -322,7 +365,7 @@ export const apps: Record<AppSlug, AppProfile> = {
       { ja: "植物ごとの水やり予定", en: "Per-plant watering schedules" },
       { ja: "写真・メモ・成長記録", en: "Photos, notes and growth records" },
       { ja: "通知・Widget・ショートカット", en: "Notifications, Widgets and Shortcuts" },
-      { ja: "任意のiCloudバックアップ", en: "Optional iCloud backup" },
+      { ja: "iCloudバックアップ・共同管理", en: "iCloud backup and shared care" },
     ],
     faq: [
       {
@@ -394,7 +437,7 @@ export const apps: Record<AppSlug, AppProfile> = {
     platform: { ja: "iPhone・iPad・Widget", en: "iPhone · iPad · Widgets" },
     icon: "/assets/widgetplay/icon.png",
     accent: "widgetplay",
-    appStoreUrl: null,
+    appStoreUrl: "https://apps.apple.com/app/id6794545691",
     screenshots: [
       {
         src: "/assets/widgetplay/library.jpg",
@@ -504,6 +547,7 @@ export const apps: Record<AppSlug, AppProfile> = {
     privacy: widgetPrivacy,
     terms: widgetTerms,
   },
+  studyseed: studySeed,
 };
 
 export const supportedLanguages: Language[] = ["ja", "en"];
@@ -513,5 +557,5 @@ export function isLanguage(value: string): value is Language {
 }
 
 export function isAppSlug(value: string): value is AppSlug {
-  return value === "leafia" || value === "widgetplay";
+  return value === "leafia" || value === "widgetplay" || value === "studyseed";
 }

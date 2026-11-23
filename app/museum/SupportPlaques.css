@@ -1,0 +1,102 @@
+.depth-support-plaque {
+  position: absolute;
+  inset: 0 auto auto 0;
+  z-index: 1;
+  width: 284px;
+  color: #251809;
+  visibility: hidden;
+  pointer-events: auto;
+  transform-origin: 0 0;
+}
+
+.depth-support-heading {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: minmax(0, max-content) minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  height: 56px;
+  padding: 7px 13px;
+  border: 1px solid #674526;
+  border-top-color: #f9db9c;
+  border-left-color: #deb77b;
+  border-radius: 1px;
+  background:
+    repeating-linear-gradient(0deg, #fff1c015 0 1px, #67380410 1px 2px),
+    linear-gradient(106deg, #be8d4d, #efd591 49%, #b3854a 86%, #936735);
+  color: #21160b;
+  text-align: left;
+  box-shadow: inset 0 0 0 1px #e2bc7cb3, 0 2px 2px #160d05d9, 3px 5px 8px #080501a3;
+}
+
+.depth-support-name {
+  font: 500 22px / 1.07 Baskerville, "Hiragino Mincho ProN", YuMincho, Georgia, serif;
+  font-size: clamp(22px, calc(15px / var(--depth-plaque-scale, 1)), 26px);
+  white-space: nowrap;
+}
+
+.depth-support-label {
+  display: block;
+  padding-inline-start: 8px;
+  border-inline-start: 1px solid #78572c;
+  font: 600 14px / 1.22 var(--ui-font);
+  font-size: clamp(14px, calc(11px / var(--depth-plaque-scale, 1)), 18px);
+  text-wrap: balance;
+}
+
+.depth-support-panel a svg {
+  width: 17px;
+  height: 17px;
+  flex: none;
+  stroke-width: 1.55;
+}
+
+.depth-support-panel {
+  position: absolute;
+  top: calc(100% - 1px);
+  inset-inline: 5px;
+  margin: 0;
+  padding: 7px 11px 9px;
+  border: 2px ridge #bd955e;
+  border-top: 0;
+  border-radius: 0 0 1px 1px;
+  list-style: none;
+  color: #241a10;
+  background: linear-gradient(111deg, #f7edd8, #ece0c5 66%, #e4d1ac);
+  box-shadow: inset 0 6px 9px -6px #563b19a8, 3px 6px 11px #080501a3;
+}
+
+.depth-support-panel li { height: 52px; }
+.depth-support-panel li + li { border-top: 1px solid #b9a588; }
+
+.depth-support-panel a {
+  display: flex;
+  height: 100%;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding-block: 7px;
+  color: inherit;
+  font: 500 17px / 1.25 var(--ui-font);
+  font-size: clamp(17px, calc(13px / var(--depth-plaque-scale, 1)), 21px);
+  text-decoration: none;
+}
+
+.depth-support-panel a:hover {
+  color: #543610;
+  text-decoration: underline;
+  text-underline-offset: .24em;
+}
+
+.depth-support-panel a:focus-visible {
+  outline: 2px solid #713f1a;
+  outline-offset: -3px;
+}
+
+@media (max-width: 650px) {
+  .depth-support-name { font-size: 24px; }
+  .depth-support-label { font-size: 18px; }
+  .depth-support-panel a { font-size: 21px; }
+}

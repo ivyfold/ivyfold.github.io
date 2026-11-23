@@ -1,0 +1,36 @@
+.museum-experience {
+  --ui-font: "Hiragino Kaku Gothic ProN", "Yu Gothic", system-ui, sans-serif;
+  font-family: Baskerville, "Hiragino Mincho ProN", YuMincho, "Times New Roman", serif;
+  font-synthesis: none;
+}
+
+.museum-experience .ui-icon {
+  display: inline-block;
+  flex: none;
+  width: 1.05em;
+  height: 1.05em;
+}
+
+.museum-experience .depth-caption-links,
+.museum-experience .depth-artwork-links {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0 1rem;
+}
+
+.museum-experience .depth-caption a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  font: 500 13px / 1.35 var(--ui-font);
+  pointer-events: auto;
+  text-decoration: underline;
+  text-underline-offset: .34em;
+}
+
+.museum-experience .depth-artwork { margin: auto; }
+
+@media (max-width: 700px) {
+  .museum-experience .ivy-entrance { min-height: 590px; }
+}
