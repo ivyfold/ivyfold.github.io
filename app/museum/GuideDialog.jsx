@@ -3,7 +3,7 @@ import { X } from "lucide-react";
 import "./GuideDialog.css";
 
 function focusAfterClose(trigger, previous) {
-  const gallery = document.getElementById("exhibition");
+  const gallery = document.querySelector("#museum-gallery-panel, #exhibition.depth-fallback");
   const href = trigger?.getAttribute("href");
   const equivalentLinks = Array.from(gallery?.querySelectorAll('a[aria-haspopup="dialog"]') ?? [])
     .filter((link) => href && link.getAttribute("href") === href);

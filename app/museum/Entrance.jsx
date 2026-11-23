@@ -1,11 +1,11 @@
 import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronDown, ChevronLeft, ChevronRight } from "lucide-react";
 import { asset } from "./museum.js";
 import { projectIcon, renderEntrance } from "./renderEntrance.js";
 import { useIconOrbit } from "./useIconOrbit.js";
 import "./Entrance.css";
 
-export function Entrance({ gallery, copy, onEnterApp, alternateLanguagePath }) {
+export function Entrance({ gallery, copy, alternateLanguagePath }) {
   const apps = useMemo(() => [gallery[0], gallery[2], gallery[1]], [gallery]);
   const canvas = useRef(null);
   const engine = useRef(null);
@@ -34,18 +34,16 @@ export function Entrance({ gallery, copy, onEnterApp, alternateLanguagePath }) {
     return engine.current?.pick(event.clientX, event.clientY);
   }
 
-  function enterApp(id) {
+  function selectApp(id) {
     const appIndex = apps.findIndex((app) => app.id === id);
-    if (appIndex < 0) return;
-    select(appIndex);
-    onEnterApp?.(id);
+    if (appIndex >= 0) select(appIndex);
   }
 
   const { index, dragging, pointer, move, select } = useIconOrbit(position => {
     pose.current = position;
     engine.current?.setPosition(position);
     placeIconTargets(position);
-  }, { hitTest: hitIcon, onTap: enterApp });
+  }, { hitTest: hitIcon, onTap: selectApp });
 
   useEffect(() => {
     if (fallback) return;
@@ -108,10 +106,10 @@ export function Entrance({ gallery, copy, onEnterApp, alternateLanguagePath }) {
         }}>
         {!fallback && <canvas className="ivy-canvas" ref={canvas} aria-hidden="true" />}
         <div ref={tiles} className={fallback ? "ivy-icon-targets ivy-fallback" : "ivy-icon-targets"}>
-          {apps.map((app) => (
+          {apps.map((app, appIndex) => (
             <button key={app.id} type="button" className="ivy-icon-target" data-orbit-tile={app.id}
-              aria-label={`${app.name} · ${copy.enter}`} onClick={(event) => {
-                if (event.detail === 0) enterApp(app.id);
+              aria-label={app.name} aria-pressed={appIndex === index} onClick={(event) => {
+                if (event.detail === 0) selectApp(app.id);
               }}>
               {fallback && <img src={asset(app.id + "-icon.png")} alt="" draggable="false" />}
             </button>
@@ -128,7 +126,10 @@ export function Entrance({ gallery, copy, onEnterApp, alternateLanguagePath }) {
               <ChevronRight aria-hidden="true" strokeWidth={1.6} />
             </button>
           </nav>
-          <a className="ivy-enter" href="#exhibition">{copy.enter}</a>
+          <p className="ivy-scroll-cue">
+            {copy.scrollToGallery}
+            <ChevronDown className="ui-icon" aria-hidden="true" strokeWidth={1.5} />
+          </p>
         </div>
       </div>
     </section>

@@ -176,22 +176,19 @@
 .ivy-swipe button svg { width: clamp(19px, 2vw, 30px); height: auto; }
 .ivy-swipe button:hover { background: #b2875630; }
 
-.ivy-enter {
+.ivy-scroll-cue {
   display: grid;
   place-items: center;
-  width: clamp(220px, 24.2vw, 375px);
+  align-content: center;
+  gap: .22em;
   min-height: clamp(49px, 7.45svh, 77px);
-  padding: .48em .8em;
-  color: #fff4dc;
-  background: #1c3b29;
-  border: 1px solid #36533e;
-  border-radius: 999px;
-  font-size: clamp(19px, min(2.04vw, 2.92svh), 32px);
-  letter-spacing: .06em;
-  pointer-events: auto;
-  transition: background .2s;
+  margin: 0;
+  color: #243d2b;
+  font: 650 clamp(13px, 1.3vw, 20px) / 1.45 var(--ui-font);
+  letter-spacing: .11em;
 }
-.ivy-enter:hover { background: #295238; }
+
+.ivy-scroll-cue .ui-icon { width: 1.28em; height: 1.28em; }
 
 @media (max-width: 700px) {
   .ivy-entrance { min-height: 630px; }
@@ -208,7 +205,7 @@
   .ivy-actions { bottom: max(24px, calc(env(safe-area-inset-bottom) + 12px), 7%); gap: 4px; }
   .ivy-app-name { font-size: clamp(31px, 8.8vw, 44px); }
   .ivy-swipe { font-size: 15px; }
-  .ivy-enter { width: min(100% - 44px, 258px); min-height: 50px; font-size: 20px; }
+  .ivy-scroll-cue { min-height: 50px; font-size: 14px; }
 }
 
 @media (min-width: 701px) and (max-height: 719px) {

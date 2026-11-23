@@ -4,6 +4,62 @@
   font-synthesis: none;
 }
 
+.museum-track {
+  position: relative;
+  background: #211e1b;
+}
+
+.museum-scroll-anchor {
+  position: absolute;
+  left: 0;
+  width: 1px;
+  height: 1px;
+  pointer-events: none;
+}
+
+.museum-track[data-static="false"] .museum-view {
+  position: sticky;
+  top: 0;
+  height: 100dvh;
+  overflow: clip;
+  isolation: isolate;
+}
+
+.museum-track[data-static="false"] :is(.museum-entry-layer, .museum-gallery-layer) {
+  position: absolute;
+  inset: 0;
+}
+
+.museum-track[data-static="false"] :is(.ivy-entrance, .depth-gallery) {
+  height: 100%;
+  min-height: 0;
+}
+
+.museum-track[data-static="false"] .museum-entry-layer {
+  z-index: 1;
+  opacity: calc(1 - var(--museum-opening, 0));
+  transform: scale(calc(1 + var(--museum-approach, 0) * .18));
+  transform-origin: center 56%;
+}
+
+.museum-track[data-static="false"] :is(.ivy-intro, .ivy-actions, .ivy-language-switch) {
+  opacity: var(--museum-intro-ui, 1);
+}
+
+.museum-track[data-static="false"] :is(.depth-header, .depth-caption, .depth-plaque-stage) {
+  opacity: var(--museum-gallery-ui, 0);
+}
+
+.museum-track[data-static="false"] .museum-view::after {
+  content: "";
+  position: absolute;
+  z-index: 2;
+  inset: 0;
+  background: radial-gradient(ellipse at 62% 45%, #21170fe3, #110c08);
+  opacity: calc(var(--museum-shadow, 0) * .76);
+  pointer-events: none;
+}
+
 .museum-experience .ui-icon {
   display: inline-block;
   flex: none;
@@ -32,5 +88,5 @@
 .museum-experience .depth-artwork { margin: auto; }
 
 @media (max-width: 700px) {
-  .museum-experience .ivy-entrance { min-height: 590px; }
+  .museum-track[data-static="true"] .ivy-entrance { min-height: 590px; }
 }

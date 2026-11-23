@@ -1,12 +1,10 @@
-import React, { useCallback, useEffect, useRef, useState } from "react";
-import { ArrowDown, ArrowUp, Maximize2 } from "lucide-react";
+import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { ArrowUp, Maximize2 } from "lucide-react";
 import { asset, guideLinks } from "./museum.js";
-import { clamp, currentRoom, distanceLabel, exhibitionAnchor, finish, start } from "./gallery-path.js";
+import { currentRoom, distanceLabel, exhibitionAnchor, finish } from "./gallery-path.js";
 import { renderGallery } from "./renderGallery.js";
 import { SupportPlaques } from "./SupportPlaques.jsx";
 import "./DepthGallery.css";
-
-const guideHistoryKey = "ivyMuseumGuide";
 
 function NextNotice({ notice, className }) {
   return (
@@ -19,8 +17,8 @@ function NextNotice({ notice, className }) {
 
 function GalleryFallback({ rooms, copy, nextNotice, onInspect, onFollow }) {
   return (
-    <section id="exhibition" className="depth-fallback" aria-label={copy.hallLabel}>
-      <header><h2>{copy.artworks}</h2><a href="#entrance">{copy.backToEntrance}</a></header>
+    <section id="exhibition" className="depth-fallback" tabIndex={-1} aria-label={copy.hallLabel}>
+      <h2>{copy.artworks}</h2>
       {rooms.map((room) => (
         <section key={room.id} id={exhibitionAnchor(room)} aria-label={room.name}>
           <h3>{room.name}</h3>
@@ -61,51 +59,25 @@ function frameInView(room, distance) {
   return room.frames.find((frame) => frame.at > distance + .70) ?? room.frames.at(-1);
 }
 
-export function DepthGallery({ rooms, copy, entry, nextNotice, onInspect, onOpenGuide }) {
+export function DepthGallery({ rooms, copy, distance, staticMode, nextNotice, onInspect, onOpenGuide, onUnavailable }) {
   const canvas = useRef(null);
   const renderer = useRef(null);
-  const pointer = useRef(null);
+  const pressed = useRef(null);
   const anchorsRef = useRef([]);
-  const exact = useRef(start);
-  const [distance, setDistance] = useState(start);
-  const [dragging, setDragging] = useState(false);
+  const position = useRef(distance);
   const [ready, setReady] = useState(false);
-  const [unavailable, setUnavailable] = useState(false);
   const [readableGuide, setReadableGuide] = useState(null);
 
-  const goTo = useCallback((position) => {
-    const value = clamp(position, start, finish);
-    if (value === exact.current) return;
-    exact.current = value;
-    renderer.current?.setDistance(value);
-    setDistance(value);
-  }, []);
-
-  useEffect(() => {
-    function visitHash() {
-      const room = rooms.find((candidate) => window.location.hash === "#" + exhibitionAnchor(candidate));
-      if (room) goTo(room.startAt);
-    }
-
-    const previousGuide = window.history.state?.[guideHistoryKey];
-    if (Number.isFinite(previousGuide?.distance)) goTo(previousGuide.distance);
-    else visitHash();
-
-    window.addEventListener("hashchange", visitHash);
-    return () => window.removeEventListener("hashchange", visitHash);
-  }, [rooms, goTo]);
-
-  useEffect(() => {
-    if (entry) goTo(entry.distance);
-  }, [entry, goTo]);
-
-  useEffect(() => {
-    if (!unavailable || !window.location.hash.startsWith("#exhibition-")) return;
-    document.getElementById(window.location.hash.slice(1))?.scrollIntoView({ block: "start" });
-  }, [unavailable]);
+  useLayoutEffect(() => {
+    position.current = distance;
+    renderer.current?.setDistance(distance);
+  }, [distance]);
 
   useEffect(() => {
     const surface = canvas.current;
+    if (staticMode || !surface) return;
+    setReady(false);
+    setReadableGuide(null);
 
     function updatePlaques(positions) {
       let visibleGuide = null;
@@ -124,85 +96,40 @@ export function DepthGallery({ rooms, copy, entry, nextNotice, onInspect, onOpen
       setReadableGuide(visibleGuide);
     }
 
-    const room = renderer.current = renderGallery(
-      surface, rooms, () => setReady(true), () => setUnavailable(true), updatePlaques, copy, nextNotice,
+    const gallery = renderer.current = renderGallery(
+      surface, rooms, () => setReady(true), onUnavailable, updatePlaques, copy, nextNotice,
     );
-    if (!room) return;
-    room.setDistance(exact.current);
-
-    function wheel(event) {
-      if (event.ctrlKey || Math.abs(event.deltaX) >= Math.abs(event.deltaY)) return;
-      const { top } = surface.getBoundingClientRect();
-      if (Math.abs(top) > 28) return;
-      const unit = event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? surface.clientHeight : 1;
-      const next = clamp(exact.current + event.deltaY * unit / 97, start, finish);
-      if (next === exact.current) return;
-      event.preventDefault();
-      goTo(next);
-    }
-
-    surface.addEventListener("wheel", wheel, { passive: false });
+    if (!gallery) return;
+    gallery.setDistance(position.current);
     return () => {
-      surface.removeEventListener("wheel", wheel);
-      if (renderer.current === room) {
-        room.dispose();
-        renderer.current = null;
-      }
-    };
-  }, [rooms, copy, nextNotice, goTo]);
-
-  useEffect(() => {
-    if (unavailable && renderer.current) {
-      renderer.current.dispose();
+      gallery.dispose();
       renderer.current = null;
-    }
-  }, [unavailable]);
+    };
+  }, [rooms, copy, nextNotice, staticMode, onUnavailable]);
 
   function onPointerDown(event) {
     if (!event.isPrimary || event.button !== 0 || !ready) return;
-    renderer.current?.clearHover();
-    pointer.current = { id: event.pointerId, x: event.clientX, y: event.clientY, distance: exact.current, moved: false };
-    event.currentTarget.setPointerCapture(event.pointerId);
+    pressed.current = { id: event.pointerId, x: event.clientX, y: event.clientY };
   }
 
   function onPointerMove(event) {
-    const held = pointer.current;
-    if (!held || held.id !== event.pointerId) {
-      if (event.pointerType === "mouse" && ready) {
-        renderer.current?.hover(event.clientX, event.clientY);
-      }
-      return;
+    if (event.pointerType === "mouse" && ready) {
+      renderer.current?.hover(event.clientX, event.clientY);
     }
-    const delta = event.clientY - held.y;
-    if (!held.moved && Math.hypot(event.clientX - held.x, delta) < 6) return;
-    if (!held.moved) {
-      held.moved = true;
-      setDragging(true);
-    }
-    goTo(held.distance + delta / 72);
   }
 
-  function onPointerEnd(event) {
-    const held = pointer.current;
-    if (!held || held.id !== event.pointerId) return;
-    pointer.current = null;
-    setDragging(false);
-    if (event.type !== "pointerup") return;
-    if (held.moved) {
-      goTo(held.distance + (event.clientY - held.y) / 72);
-      return;
-    }
+  function onPointerUp(event) {
+    const origin = pressed.current;
+    if (!origin || origin.id !== event.pointerId) return;
+    pressed.current = null;
+    if (Math.hypot(event.clientX - origin.x, event.clientY - origin.y) >= 6) return;
     const selected = renderer.current?.pick(event.clientX, event.clientY);
     if (selected) onInspect(selected);
   }
 
-  function keyboard(event) {
-    if (event.altKey || event.ctrlKey || event.metaKey
-      || event.target.closest(".depth-support-plaque, .depth-caption-guide")) return;
-    const step = { ArrowDown: .88, ArrowUp: -.88, PageDown: 3, PageUp: -3 }[event.key];
-    if (step === undefined) return;
-    event.preventDefault();
-    goTo(exact.current + step);
+  function clearPointer() {
+    pressed.current = null;
+    renderer.current?.clearHover();
   }
 
   function followGuide(event, appId, kind) {
@@ -211,7 +138,7 @@ export function DepthGallery({ rooms, copy, entry, nextNotice, onInspect, onOpen
     if (onOpenGuide(appId, kind, event.currentTarget)) event.preventDefault();
   }
 
-  if (unavailable) {
+  if (staticMode) {
     return <GalleryFallback rooms={rooms} copy={copy} nextNotice={nextNotice}
       onInspect={onInspect} onFollow={followGuide} />;
   }
@@ -224,26 +151,26 @@ export function DepthGallery({ rooms, copy, entry, nextNotice, onInspect, onOpen
   });
 
   return (
-    <section id="exhibition" className="depth-gallery" tabIndex="0" onKeyDown={keyboard}
-      aria-label={copy.hallLabel} aria-describedby="depth-guide"
-      data-distance={distanceLabel(distance)} data-app={room.id} data-dragging={dragging} data-ready={ready}>
-      {rooms.map((exhibit) => (
-        <span key={exhibit.id} id={exhibitionAnchor(exhibit)} className="depth-exhibit-anchor" aria-hidden="true" />
-      ))}
+    <section id="museum-gallery-panel" className="depth-gallery" tabIndex={-1}
+      aria-label={copy.hallLabel}
+      data-distance={distanceLabel(distance)} data-app={room.id} data-ready={ready}>
       <canvas ref={canvas} className="depth-canvas" aria-hidden="true"
-        onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerEnd}
-        onPointerLeave={() => renderer.current?.clearHover()}
-        onPointerCancel={onPointerEnd} onLostPointerCapture={onPointerEnd} />
+        onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerUp}
+        onPointerLeave={clearPointer} onPointerCancel={clearPointer} />
       <div className="depth-shade" aria-hidden="true" />
       <div className="depth-plaque-stage" hidden={!ready}>
         <SupportPlaques copy={copy} rooms={rooms} anchorsRef={anchorsRef} onFollow={followGuide} />
       </div>
       <header className="depth-header">
-        <span>{copy.hallBrand}</span><a href="#entrance">{copy.backToEntrance}</a>
+        <span>{copy.hallBrand}</span>
       </header>
       {!ready ? <p className="depth-loading" role="status">{copy.loading}</p> : (
-        <>
-          {atEnd ? <NextNotice notice={nextNotice} className="depth-end-copy" /> : (
+        atEnd ? (
+          <>
+            <NextNotice notice={nextNotice} className="depth-end-copy" />
+            <p className="depth-scroll-note"><ArrowUp className="ui-icon" aria-hidden="true" />{copy.scrollBack}</p>
+          </>
+        ) : (
           <aside className="depth-caption" data-viewing-artwork={Boolean(frame)} aria-label={copy.currentExhibit}>
             <h2>{room.name}</h2>
             <div className="depth-caption-links"><button type="button" onClick={openNearby} aria-haspopup="dialog"
@@ -259,15 +186,7 @@ export function DepthGallery({ rooms, copy, entry, nextNotice, onInspect, onOpen
               </nav>
             )}
           </aside>
-          )}
-          <nav className="depth-controls" aria-label={copy.walkControls}>
-            <button type="button" aria-label={copy.back} aria-disabled={distance === start}
-              onClick={() => goTo(exact.current - .88)}><ArrowUp className="ui-icon" aria-hidden="true" /></button>
-            <span id="depth-guide">{atEnd ? copy.dragBack : copy.drag}</span>
-            <button type="button" aria-label={copy.forward} aria-disabled={distance === finish}
-              onClick={() => goTo(exact.current + .88)}><ArrowDown className="ui-icon" aria-hidden="true" /></button>
-          </nav>
-        </>
+        )
       )}
     </section>
   );
