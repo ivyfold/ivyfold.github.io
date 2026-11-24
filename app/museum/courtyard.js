@@ -11,35 +11,68 @@ const titleFont = '"Hiragino Mincho ProN", "Yu Mincho", "Noto Serif JP", Georgia
 // Coordinates are normalized to the source photograph, measured at the wall and ceiling edges.
 const wide = {
   file: "courtyard.webp", aspect: 1672 / 941, guideX: .623,
-  titleX: .069, titleY: .377, titleWidth: .155, titleRotation: -.15,
+  titleX: .040, titleY: .421, titleWidth: .224, titleHeight: .244, titleRotation: -.105,
   left: [[-.055, .990], [0, .946], [.10, .873], [.20, .799], [.286, .735]],
   right: [[.967, 1.055], [.908, 1], [.870, .947], [.830, .898], [.800, .853], [.780, .804], [.776, .770]],
   roof: [[-.15, .09], [.286, .202], [.45, .177], [.60, .162], [.739, .155], [1.15, .08]],
 };
 const tall = {
   file: "courtyard-portrait.webp", aspect: 864 / 1536, guideX: .706,
-  titleX: .070, titleY: .852, titleWidth: .70, titleRotation: 0,
   left: [[-.07, .778], [0, .748], [.062, .722]],
   right: [[1.06, .93], [1, .852], [.972, .831], [.950, .803], [.944, .782]],
   roof: [[-.15, .13], [.062, .177], [.32, .161], [.60, .154], [.80, .160], [.90, .179], [.940, .219], [1.15, .125]],
 };
 
+export function courtyardTitleLines(title) {
+  const pause = title.indexOf("、");
+  if (pause !== -1 && pause < title.length - 1) {
+    return [title.slice(0, pause + 1), title.slice(pause + 1).trim()];
+  }
+  const clause = title.indexOf(" will ");
+  if (clause > 0) return [title.slice(0, clause), title.slice(clause).trim()];
+  return [title];
+}
+
 function createTitleTexture(title) {
   const canvas = document.createElement("canvas");
   canvas.width = 1024;
-  canvas.height = 128;
+  canvas.height = 560;
   const context = canvas.getContext("2d");
   if (context) {
-    context.font = "500 82px " + titleFont;
-    context.textBaseline = "middle";
-    context.fillStyle = "#fff0d8";
-    context.shadowColor = "#241a11";
-    context.shadowBlur = 8;
-    context.shadowOffsetY = 3;
-    context.fillText(title, 9, 62, canvas.width - 18);
+    const lines = courtyardTitleLines(title);
+    context.font = "600 198px " + titleFont;
+    context.textBaseline = "alphabetic";
+    const lineWidth = Math.max(...lines.map(line => context.measureText(line).width));
+    const horizontalScale = Math.min(1, (canvas.width - 64) / Math.max(lineWidth, 1));
+    context.translate(22, 0);
+    context.scale(horizontalScale, 1);
+
+    for (let index = 0; index < lines.length; index++) {
+      const line = lines[index];
+      const baseline = lines.length === 2 ? 216 + 241 * index : 354;
+      context.save();
+      context.shadowColor = "#181008df";
+      context.shadowBlur = 13;
+      context.shadowOffsetX = 8;
+      context.shadowOffsetY = 12;
+      context.fillStyle = "#684325";
+      context.fillText(line, 7, baseline + 7);
+      context.restore();
+
+      context.lineWidth = 2.4;
+      context.strokeStyle = "#dcac73";
+      context.strokeText(line, 0, baseline);
+      const face = context.createLinearGradient(0, baseline - 171, 0, baseline + 14);
+      face.addColorStop(0, "#fff7e4");
+      face.addColorStop(.58, "#f2d9b4");
+      face.addColorStop(1, "#d3a46e");
+      context.fillStyle = face;
+      context.fillText(line, 0, baseline);
+    }
   }
   const texture = new THREE.CanvasTexture(canvas);
   texture.colorSpace = THREE.SRGBColorSpace;
+  texture.anisotropy = 4;
   return texture;
 }
 
@@ -48,6 +81,7 @@ const projectionFragment = [
   "uniform sampler2D courtImage, courtTitle;",
   "uniform vec3 courtEye, courtForward, courtRight;",
   "uniform vec2 courtLens, courtEntrance, courtPhotoGuide, courtTitleCenter, courtTitleSize;",
+  "uniform vec4 courtWallLight;",
   "uniform float courtTitleRotation, courtImageAspect;",
   "vec2 courtLocalFloor() {",
   "  vec3 relative = vCourtWorld - courtEye;",
@@ -58,6 +92,11 @@ const projectionFragment = [
   "}",
   "vec3 courtColor(vec2 uv) {",
   "  vec3 color = texture2D(courtImage, clamp(uv, 0., 1.)).rgb;",
+  "  if (courtWallLight.w < .5) return color;",
+  "  float spread = mix(.026, .114, clamp((courtWallLight.y - uv.y) / .36, 0., 1.));",
+  "  vec2 lightDelta = (uv - courtWallLight.xy) / vec2(spread, .30);",
+  "  float wash = exp(-dot(lightDelta, lightDelta)) * (1. - smoothstep(courtWallLight.z - .035, courtWallLight.z, uv.x));",
+  "  color += vec3(.220, .099, .035) * wash;",
   "  vec2 relative = (uv - courtTitleCenter) * vec2(courtImageAspect, 1.);",
   "  float c = cos(courtTitleRotation), s = sin(courtTitleRotation);",
   "  vec2 glyph = mat2(c, -s, s, c) * relative / courtTitleSize + .5;",
@@ -150,6 +189,7 @@ export function createCourtyard(scene, texture, title) {
     courtTitleSize: { value: new THREE.Vector2() },
     courtTitleRotation: { value: 0 },
     courtImageAspect: { value: wide.aspect },
+    courtWallLight: { value: new THREE.Vector4(.103, .835, .282, 0) },
   };
 
   // Both surfaces use the same fixed projector. The floor is horizontal all the
@@ -249,9 +289,15 @@ export function createCourtyard(scene, texture, title) {
     uniforms.courtImage.value = panoramas[portrait ? 1 : 0];
     uniforms.courtLens.value.set(lensX, lensY);
     uniforms.courtPhotoGuide.value.set((view.guideX - .5) * 2 * lensX * guideDepth, guideDepth);
-    uniforms.courtTitleCenter.value.set(view.titleX + view.titleWidth * .5, portrait ? -1 : 1 - view.titleY);
-    uniforms.courtTitleSize.value.set(view.titleWidth * view.aspect, view.titleWidth * view.aspect * .125);
-    uniforms.courtTitleRotation.value = view.titleRotation;
+    const showsTitleOnWall = aspect > 33 / 25;
+    const visibleLeft = .5 - halfHeight * aspect / (2 * lensX);
+    const titleX = Math.max(wide.titleX, visibleLeft + .025);
+    const titleWidth = Math.max(.01, Math.min(wide.titleWidth, .277 - titleX));
+    uniforms.courtTitleCenter.value.set(titleX + titleWidth * .5, 1 - wide.titleY);
+    uniforms.courtTitleSize.value.set(titleWidth * wide.aspect, wide.titleHeight * titleWidth / wide.titleWidth);
+    uniforms.courtTitleRotation.value = wide.titleRotation;
+    uniforms.courtWallLight.value.x = titleX + titleWidth * .28;
+    uniforms.courtWallLight.value.w = showsTitleOnWall ? 1 : 0;
     uniforms.courtImageAspect.value = view.aspect;
     fitShell(view, lensX, lensY);
   }

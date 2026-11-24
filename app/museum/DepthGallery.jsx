@@ -1,8 +1,9 @@
 import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { ArrowUp, Maximize2 } from "lucide-react";
-import { asset, guideLinks } from "./museum.js";
+import { appOverview, asset, guideLinks } from "./museum.js";
 import { courtyardStart, currentRoom, distanceLabel, exhibitionAnchor, finish } from "./gallery-path.js";
 import { renderGallery } from "./renderGallery.js";
+import { courtyardTitleLines } from "./courtyard.js";
 import { SupportPlaques } from "./SupportPlaques.jsx";
 import "./DepthGallery.css";
 
@@ -22,6 +23,10 @@ function GalleryFallback({ rooms, copy, nextNotice, onInspect, onFollow }) {
       {rooms.map((room) => (
         <section key={room.id} id={exhibitionAnchor(room)} aria-label={room.name}>
           <h3>{room.name}</h3>
+          <button className="depth-fallback-overview" type="button" aria-haspopup="dialog"
+            onClick={() => onInspect(appOverview(room))}>
+            {copy.viewScreen} <Maximize2 className="ui-icon" aria-hidden="true" />
+          </button>
           <a href={room.detailsPath}>{copy.details}</a>
           <nav className="depth-fallback-guide" aria-label={room.name + " " + copy.appGuide}>
             <ul>
@@ -144,18 +149,25 @@ export function DepthGallery({ rooms, copy, distance, staticMode, nextNotice, on
     if (onOpenGuide(appId, kind, event.currentTarget)) event.preventDefault();
   }
 
+  const room = currentRoom(rooms, distance);
+  const atExhibit = ready && !staticMode && distance >= room.startAt;
+  useEffect(() => {
+    if (!atExhibit) return;
+    for (const name of [room.phone, room.slug + "-exhibit-stage.webp"]) {
+      const image = new Image();
+      image.fetchPriority = "low";
+      image.src = asset(name);
+    }
+  }, [atExhibit, room]);
+
   if (staticMode) {
     return <GalleryFallback rooms={rooms} copy={copy} nextNotice={nextNotice}
       onInspect={onInspect} onFollow={followGuide} />;
   }
-
-  const room = currentRoom(rooms, distance);
   const atEnd = distance >= finish - .10;
   const inCourtyard = distance >= courtyardStart;
   const frame = frameInView(room, distance);
-  const openNearby = () => onInspect(frame ? { ...frame, room } : {
-    room, title: room.name, image: room.phone, description: room.summary,
-  });
+  const openNearby = () => onInspect(frame ? { ...frame, room } : appOverview(room));
 
   return (
     <section id="museum-gallery-panel" className="depth-gallery" tabIndex={-1}
@@ -178,7 +190,9 @@ export function DepthGallery({ rooms, copy, distance, staticMode, nextNotice, on
             <NextNotice notice={nextNotice} className="depth-end-copy" />
             {atEnd && (
               <>
-                <p className="depth-courtyard-mobile-title" aria-hidden="true">{nextNotice.title}</p>
+                <p className="depth-courtyard-mobile-title" aria-hidden="true">
+                  {courtyardTitleLines(nextNotice.title).map((line) => <span key={line}>{line}</span>)}
+                </p>
                 <p className="depth-scroll-note"><ArrowUp className="ui-icon" aria-hidden="true" />{copy.scrollBack}</p>
               </>
             )}

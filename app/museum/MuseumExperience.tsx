@@ -20,10 +20,11 @@ type MuseumProfile = {
   termsPath: string | null;
 };
 type MuseumArtwork = {
+  kind?: "app";
   title: string;
   image: string;
   description: string;
-  room: { name: string; store: string | null; detailsPath: string };
+  room: { name: string; slug: string; summary: string; store: string | null; detailsPath: string };
 };
 type MuseumAppId = "leafia" | "widgetgame" | "studyseed";
 type GuideKind = "support" | "privacy" | "terms";

@@ -1,6 +1,6 @@
 import * as THREE from "three";
 import { place } from "./gallery-path.js";
-import { guideLinks } from "./museum.js";
+import { appOverview, guideLinks } from "./museum.js";
 import { makeBooksProp, makeGameProp } from "./exhibitProps.js";
 import { makePlantProp } from "./pedestalPlant.js";
 import { createPhoneDisplay } from "./phoneDisplay.js";
@@ -308,7 +308,7 @@ export function createExhibits(scene, rooms, texture, materials, copy) {
     const phone = mesh(station, glass, new THREE.MeshBasicMaterial({
       map: display.texture, toneMapped: false,
     }), .18, phoneCenter, .064);
-    phone.userData.art = { room, title: room.name, image: room.phone, description: room.summary };
+    phone.userData.art = appOverview(room);
     targets.push(phone);
 
     mesh(station, propContact, shadow, -.66, plinthHeight + .002, .11).rotation.x = -Math.PI / 2;

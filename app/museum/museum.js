@@ -11,11 +11,16 @@ export function guideLinks(room, copy) {
   ].filter(({ href }) => href);
 }
 
+export function appOverview(room) {
+  return { kind: "app", room, title: room.name, image: room.phone, description: room.overviewDescription };
+}
+
 const gallery = [
   {
     id: "leafia",
     name: "Leafia",
     summary: "観葉植物のお世話を記録",
+    overviewDescription: "水やりの予定や、日々の成長をひとつに。",
     store: "https://apps.apple.com/jp/app/id6780912421",
     phone: "leafia-plants.jpg",
     frames: [
@@ -30,7 +35,8 @@ const gallery = [
     id: "widgetgame",
     name: "WidgetGame",
     summary: "ホーム画面で遊べるミニゲーム",
-    phone: "widgetgame-merge.jpg",
+    overviewDescription: "ナンプレやリバーシ、2048を、ちょっとした空き時間に。",
+    phone: "widgetgame-library.jpg",
     frames: [
       { image: "widgetgame-library.jpg", title: "ゲーム一覧", caption: "気分でゲームを選ぶ", description: "気分に合うミニゲームを一覧から選べます。" },
       { image: "widgetgame-merge.jpg", title: "Merge 2048", caption: "数字を重ねて大きく", description: "同じ数字のタイルを重ねて、より大きな数字を作るパズルです。" },
@@ -43,6 +49,7 @@ const gallery = [
     id: "studyseed",
     name: "書斎のたね",
     summary: "読んだ本とともに育つ書斎",
+    overviewDescription: "読書を記録するたび、本棚や家具で自分だけの書斎が育ちます。",
     displayTagline: "読書の記録で書斎が育つ",
     phone: "studyseed-room.jpg",
     frames: [
@@ -70,6 +77,7 @@ export function galleryFor(language, profiles) {
       privacyPath: profile.privacyPath,
       termsPath: profile.termsPath,
       summary: english ? englishApps[room.id].summary : room.summary,
+      overviewDescription: english ? englishApps[room.id].overviewDescription : room.overviewDescription,
       displayTagline: english ? englishApps[room.id].displayTagline : room.displayTagline ?? room.summary,
       frames: english ? room.frames.map((frame) => ({ ...frame, ...englishFrames[frame.image] })) : room.frames,
     };

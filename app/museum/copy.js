@@ -24,6 +24,8 @@ export const museumCopy = {
     close: "展示を閉じる",
     closeGuide: "案内を閉じる",
     appStore: "App Storeで見る",
+    appScreen: "アプリ画面",
+    inDevelopment: "開発中",
     details: "アプリの詳細",
     appGuide: "アプリのご案内",
     supportLink: "サポート",
@@ -55,6 +57,8 @@ export const museumCopy = {
     close: "Close exhibit",
     closeGuide: "Close information",
     appStore: "View on the App Store",
+    appScreen: "App screen",
+    inDevelopment: "In development",
     details: "App details",
     appGuide: "App information",
     supportLink: "Support",
@@ -64,9 +68,21 @@ export const museumCopy = {
 };
 
 export const englishApps = {
-  leafia: { summary: "Keep track of houseplant care", displayTagline: "Track houseplant care" },
-  widgetgame: { summary: "Mini-games you can play from your Home Screen", displayTagline: "Home Screen mini-games" },
-  studyseed: { summary: "A little study that grows with every book you read", displayTagline: "Grow a study by logging books" },
+  leafia: {
+    summary: "Keep track of houseplant care",
+    displayTagline: "Track houseplant care",
+    overviewDescription: "Keep watering schedules and everyday growth records together.",
+  },
+  widgetgame: {
+    summary: "Mini-games you can play from your Home Screen",
+    displayTagline: "Home Screen mini-games",
+    overviewDescription: "Play Sudoku, Reversi and 2048 whenever you have a moment.",
+  },
+  studyseed: {
+    summary: "A little study that grows with every book you read",
+    displayTagline: "Grow a study by logging books",
+    overviewDescription: "Log your reading and furnish a study of your own as it grows.",
+  },
 };
 
 export const englishFrames = {
