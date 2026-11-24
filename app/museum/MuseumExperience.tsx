@@ -32,7 +32,8 @@ type MuseumModal =
   | { type: "guide"; appId: MuseumAppId; kind: GuideKind; returnFocus: HTMLElement };
 
 const arrivalScreens = .94;
-const corridorScreens = 6;
+// The extra walk to the courtyard keeps the existing exhibits at the same scroll positions.
+const corridorScreens = (finish - start) / 6.775;
 const tourScreens = arrivalScreens + corridorScreens;
 const foyerDistance = .15;
 
@@ -146,6 +147,8 @@ export function MuseumExperience({
               <span key={room.slug} id={exhibitionAnchor(room)} className="museum-scroll-anchor"
                 style={{ top: `calc(${exhibitOffset(room.startAt)}svh + 2px)` }} aria-hidden="true" />
             ))}
+            <span id="exhibition-courtyard" className="museum-scroll-anchor"
+              style={{ top: `calc(${tourScreens * 100}svh + 2px)` }} aria-hidden="true" />
           </>
         )}
         <div ref={viewport} className="museum-view">

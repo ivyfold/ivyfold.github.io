@@ -1,5 +1,4 @@
 import * as THREE from "three";
-import { createEndNotice } from "./endNotice.js";
 
 const LEFT = -3.1;
 const RIGHT = 2.03;
@@ -145,21 +144,7 @@ function ceilingSpots(group, path) {
   group.add(shades, apertures);
 }
 
-function endWall(path, material) {
-  const depth = path.sample(path.length);
-  const positions = [
-    ...offsetPoint(depth, LEFT, 0), ...offsetPoint(depth, RIGHT, 0),
-    ...offsetPoint(depth, LEFT, HIGH_CEILING), ...offsetPoint(depth, RIGHT, HIGH_CEILING),
-  ];
-  const geometry = new THREE.BufferGeometry();
-  geometry.setAttribute("position", new THREE.Float32BufferAttribute(positions, 3));
-  geometry.setAttribute("uv", new THREE.Float32BufferAttribute([0, 0, 2.3, 0, 0, 1.6, 2.3, 1.6], 2));
-  geometry.setIndex([0, 1, 2, 1, 3, 2]);
-  geometry.computeVertexNormals();
-  return new THREE.Mesh(geometry, material);
-}
-
-export function createHall(scene, path, textures = {}, nextNotice) {
+export function createHall(scene, path, textures = {}, courtyard) {
   const group = new THREE.Group();
   group.name = "Continuous limestone and walnut gallery";
   const samples = range(0, path.length, Math.max(2, Math.ceil(path.length / 0.21)))
@@ -185,22 +170,14 @@ export function createHall(scene, path, textures = {}, nextNotice) {
     emissive: "#261e18",
     emissiveIntensity: 0.68,
   });
+  courtyard.addFloor(floor);
   group.add(
     stripMesh(samples, floorSection(LEFT, RIGHT, 0), floor, { repeatEvery: 2.35 }),
     stripMesh(samples, wallSection(LEFT, 0, LOW_CEILING), stone, { reverse: true, repeatEvery: 2.6 }),
     stripMesh(samples, wallSection(RIGHT, 0, LOW_CEILING),
       new THREE.MeshStandardMaterial({ color: "#2d1a14", roughness: 0.84 })),
-    endWall(path, stone),
     createWalnutSlats(path, textures.walnut ?? textures.wood),
   );
-  if (nextNotice?.title && nextNotice.body) {
-    const end = path.sample(path.length);
-    const notice = createEndNotice(nextNotice);
-    notice.position.fromArray(offsetPoint(end, (LEFT + RIGHT) / 2, 1.90));
-    notice.rotation.y = Math.atan2(-end.dx, -end.dz);
-    group.add(notice);
-    group.userData.endNoticeTarget = notice.localToWorld(new THREE.Vector3(0, 0, .126));
-  }
 
   const plaster = new THREE.MeshStandardMaterial({
     color: "#bd9471", roughness: 0.91, emissive: "#735137", emissiveIntensity: 0.91,
@@ -273,7 +250,9 @@ export function createHall(scene, path, textures = {}, nextNotice) {
   const fill = new THREE.HemisphereLight("#f7eadd", "#938779", 1.63);
   const bounce = new THREE.DirectionalLight("#ffd8b2", 0.58);
   bounce.position.set(2.7, 6.5, 3.1);
-  group.add(fill, bounce);
+  const daylight = new THREE.PointLight("#fff2d7", 14, 5.4, 2);
+  daylight.position.fromArray(offsetPoint(path.sample(path.length - .18), -.89, 2.9));
+  group.add(fill, bounce, daylight);
   scene.add(group);
   return group;
 }

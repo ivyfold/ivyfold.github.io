@@ -1,7 +1,7 @@
 import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { ArrowUp, Maximize2 } from "lucide-react";
 import { asset, guideLinks } from "./museum.js";
-import { currentRoom, distanceLabel, exhibitionAnchor, finish } from "./gallery-path.js";
+import { courtyardStart, currentRoom, distanceLabel, exhibitionAnchor, finish } from "./gallery-path.js";
 import { renderGallery } from "./renderGallery.js";
 import { SupportPlaques } from "./SupportPlaques.jsx";
 import "./DepthGallery.css";
@@ -49,7 +49,13 @@ function GalleryFallback({ rooms, copy, nextNotice, onInspect, onFollow }) {
           </div>
         </section>
       ))}
-      <NextNotice notice={nextNotice} className="depth-fallback-next" />
+      <div id="exhibition-courtyard" className="depth-fallback-courtyard">
+        <picture>
+          <source media="(max-width: 620px)" srcSet={asset("courtyard-portrait.webp")} />
+          <img src={asset("courtyard.webp")} width="1672" height="941" alt="" loading="lazy" />
+        </picture>
+        <NextNotice notice={nextNotice} className="depth-fallback-next" />
+      </div>
     </section>
   );
 }
@@ -145,6 +151,7 @@ export function DepthGallery({ rooms, copy, distance, staticMode, nextNotice, on
 
   const room = currentRoom(rooms, distance);
   const atEnd = distance >= finish - .10;
+  const inCourtyard = distance >= courtyardStart;
   const frame = frameInView(room, distance);
   const openNearby = () => onInspect(frame ? { ...frame, room } : {
     room, title: room.name, image: room.phone, description: room.summary,
@@ -153,7 +160,8 @@ export function DepthGallery({ rooms, copy, distance, staticMode, nextNotice, on
   return (
     <section id="museum-gallery-panel" className="depth-gallery" tabIndex={-1}
       aria-label={copy.hallLabel}
-      data-distance={distanceLabel(distance)} data-app={room.id} data-ready={ready}>
+      data-distance={distanceLabel(distance)} data-app={room.id} data-ready={ready}
+      data-courtyard={inCourtyard}>
       <canvas ref={canvas} className="depth-canvas" aria-hidden="true"
         onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerUp}
         onPointerLeave={clearPointer} onPointerCancel={clearPointer} />
@@ -165,10 +173,15 @@ export function DepthGallery({ rooms, copy, distance, staticMode, nextNotice, on
         <span>{copy.hallBrand}</span>
       </header>
       {!ready ? <p className="depth-loading" role="status">{copy.loading}</p> : (
-        atEnd ? (
+        inCourtyard ? (
           <>
             <NextNotice notice={nextNotice} className="depth-end-copy" />
-            <p className="depth-scroll-note"><ArrowUp className="ui-icon" aria-hidden="true" />{copy.scrollBack}</p>
+            {atEnd && (
+              <>
+                <p className="depth-courtyard-mobile-title" aria-hidden="true">{nextNotice.title}</p>
+                <p className="depth-scroll-note"><ArrowUp className="ui-icon" aria-hidden="true" />{copy.scrollBack}</p>
+              </>
+            )}
           </>
         ) : (
           <aside className="depth-caption" data-viewing-artwork={Boolean(frame)} aria-label={copy.currentExhibit}>

@@ -28,6 +28,8 @@
   background: linear-gradient(180deg, #16141073, transparent 14% 70%, #0f0d0a75);
   pointer-events: none;
 }
+.depth-gallery[data-courtyard="true"] .depth-shade { opacity: .3; }
+.depth-gallery[data-courtyard="true"] .depth-header { visibility: hidden; }
 .depth-plaque-stage {
   position: absolute;
   inset: 0;
@@ -174,13 +176,19 @@
   margin-block: 14px 20px;
 }
 .depth-fallback-guide li { margin-block: .6em; }
-.depth-fallback-next {
-  max-width: 44rem;
+.depth-fallback-courtyard {
+  max-width: 68rem;
   margin: 42px auto 0;
-  padding: clamp(18px, 3vw, 32px);
-  border: 1px solid #a48054;
   background: #f5ead4;
   color: #281d15;
+}
+.depth-fallback-courtyard img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+.depth-fallback-next {
+  padding: clamp(18px, 3vw, 32px);
 }
 .depth-fallback-next h2 { margin-block: 0 .6em; }
 .depth-fallback-next p { margin: 0; }
@@ -212,4 +220,20 @@
   .depth-artwork figure { justify-self: center; }
   .depth-artwork img { height: auto; max-height: 59svh; }
   .depth-artwork p { font-size: 15px; }
+}
+
+.depth-courtyard-mobile-title { display: none; }
+
+@media (max-aspect-ratio: 17/20) {
+  .depth-courtyard-mobile-title {
+    position: absolute;
+    display: block;
+    inset: auto 20px max(83px, 13svh) 6%;
+    margin: 0;
+    color: #fff0d8;
+    font-size: clamp(19px, 5.55vw, 30px);
+    line-height: 1.35;
+    text-shadow: 0 2px 8px #21170f;
+    pointer-events: none;
+  }
 }

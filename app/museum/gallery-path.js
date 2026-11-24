@@ -12,7 +12,8 @@ export const path = {
 };
 
 export const start = 1.65;
-export const finish = 42.3;
+export const courtyardStart = 43.7;
+export const finish = 47.64;
 export const clamp = (value, low, high) => Math.min(high, Math.max(low, value));
 export const distanceLabel = (value) => String(value.toFixed(3));
 export const exhibitionAnchor = (room) => "exhibition-" + room.slug;

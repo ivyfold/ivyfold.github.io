@@ -1,15 +1,26 @@
 import * as THREE from "three";
 import { asset } from "./museum.js";
-import { finish, path, place, start } from "./gallery-path.js";
+import { courtyardStart, finish, path, place, start } from "./gallery-path.js";
 import { createHall } from "./hall.js";
 import { createExhibits } from "./exhibits.js";
+import { createCourtyard } from "./courtyard.js";
 
 function eased(from, to, value) {
   const normalized = Math.max(0, Math.min(1, (value - from) / (to - from)));
   return normalized * normalized * (3 - 2 * normalized);
 }
 
-function cameraPose(camera, distance, rooms, endNoticeTarget) {
+function verticalFov(horizontalFov, aspect) {
+  return THREE.MathUtils.radToDeg(
+    2 * Math.atan(Math.tan(THREE.MathUtils.degToRad(horizontalFov / 2)) / aspect),
+  );
+}
+
+function galleryFov(aspect) {
+  return aspect < .85 ? Math.min(88, verticalFov(52, aspect)) : 54;
+}
+
+function cameraPose(camera, distance, rooms, courtyardTarget) {
   const wallInterest = Math.max(...rooms.map((room) =>
     eased(room.phoneAt - .25, room.phoneAt + 1.55, distance) *
     (1 - eased(room.frames.at(-1).at - .50, room.frames.at(-1).at + 1.75, distance))
@@ -33,28 +44,20 @@ function cameraPose(camera, distance, rooms, endNoticeTarget) {
     distance + 5.0 - glance * 1.15 + portraitFraming * .50,
     -1.68 - glance * (1.95 + narrowView) - approachFraming - portraitFraming * 2.25 - plaqueFraming,
   );
-  const verticalFov = (horizontalFov) => THREE.MathUtils.radToDeg(
-    2 * Math.atan(Math.tan(THREE.MathUtils.degToRad(horizontalFov / 2)) / camera.aspect),
-  );
-  const corridorFov = camera.aspect < .85 ? Math.min(88, verticalFov(52)) : 54;
-  const stationFov = Math.min(98, verticalFov(43.5));
-  const fov = THREE.MathUtils.lerp(corridorFov, stationFov, portraitFraming);
+  const stationFov = Math.min(98, verticalFov(43.5, camera.aspect));
+  const fov = THREE.MathUtils.lerp(galleryFov(camera.aspect), stationFov, portraitFraming);
   if (camera.fov !== fov) {
     camera.fov = fov;
     camera.updateProjectionMatrix();
   }
   camera.position.set(visitor.x, 1.60, visitor.z);
   const lookHeight = 1.62 - portraitFraming * .01;
-  if (endNoticeTarget) {
-    const approachEnd = eased(finish - 1.90, finish - .15, distance);
-    camera.lookAt(
-      THREE.MathUtils.lerp(look.x, endNoticeTarget.x, approachEnd),
-      THREE.MathUtils.lerp(lookHeight, endNoticeTarget.y, approachEnd),
-      THREE.MathUtils.lerp(look.z, endNoticeTarget.z, approachEnd),
-    );
-  } else {
-    camera.lookAt(look.x, lookHeight, look.z);
-  }
+  const approach = eased(courtyardStart - .18, finish - .62, distance);
+  camera.lookAt(
+    THREE.MathUtils.lerp(look.x, courtyardTarget.x, approach),
+    THREE.MathUtils.lerp(lookHeight, courtyardTarget.y, approach),
+    THREE.MathUtils.lerp(look.z, courtyardTarget.z, approach),
+  );
 }
 
 const PLAQUE_WIDTH = 284;
@@ -193,11 +196,9 @@ export function renderGallery(canvas, rooms, onReady, onUnavailable, onPlaques, 
   function paint() {
     pending = 0;
     if (destroyed) return;
-    cameraPose(camera, distance, rooms, endNoticeTarget);
-    if (pointerPosition) {
-      camera.updateMatrixWorld();
-      refreshHover();
-    }
+    cameraPose(camera, distance, rooms, courtyard.target);
+    camera.updateMatrixWorld();
+    if (pointerPosition) refreshHover();
     renderer.render(scene, camera);
     onPlaques?.(projectNotices(notices, camera, distance, viewportWidth, viewportHeight));
   }
@@ -230,8 +231,8 @@ export function renderGallery(canvas, rooms, onReady, onUnavailable, onPlaques, 
     floor: texture("floor.jpg", true),
     wood: texture("walnut-floor.jpg", true),
   };
-  const hall = createHall(scene, path, { ...materials, walnut: materials.wood }, nextNotice);
-  const { endNoticeTarget } = hall.userData;
+  const courtyard = createCourtyard(scene, texture, nextNotice.title);
+  createHall(scene, path, { ...materials, walnut: materials.wood }, courtyard);
   const { targets, notices, phoneDisplays } = createExhibits(scene, rooms, texture, materials, copy);
 
   function fit() {
@@ -242,6 +243,7 @@ export function renderGallery(canvas, rooms, onReady, onUnavailable, onPlaques, 
     viewportHeight = height;
     renderer.setSize(width, height, false);
     camera.aspect = width / height;
+    courtyard.fit(camera.aspect, galleryFov(camera.aspect));
     camera.updateProjectionMatrix();
     invalidate();
   }
@@ -282,6 +284,7 @@ export function renderGallery(canvas, rooms, onReady, onUnavailable, onPlaques, 
       });
       for (const image of loaded.values()) freed.add(image);
       freed.forEach((value) => value.dispose());
+      courtyard.dispose();
       renderer.dispose();
     },
   };
