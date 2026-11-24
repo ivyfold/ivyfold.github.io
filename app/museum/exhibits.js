@@ -19,7 +19,7 @@ function radial(stops) {
 }
 
 const plaquePixels = { width: 1024, height: 344 };
-const guideFace = { width: 2.60, headerHeight: .31, top: 2.60, depth: .10 };
+const guideFace = { width: 2.12, headerHeight: .31, top: 2.60, depth: .10 };
 const pedestalProps = {
   leafia: makePlantProp,
   widgetgame: makeGameProp,
