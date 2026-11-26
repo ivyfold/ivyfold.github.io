@@ -7,11 +7,12 @@ const backdropSpan = 36;
 const openingCeiling = 4.09;
 const leftEdge = -3.1;
 const rightEdge = 2.03;
+const titlePixels = { width: 1536, height: 560 };
 const titleFont = '"Hiragino Mincho ProN", "Yu Mincho", "Noto Serif JP", Georgia, serif';
 // Coordinates are normalized to the source photograph, measured at the wall and ceiling edges.
 const wide = {
   file: "courtyard.webp", aspect: 1672 / 941, guideX: .623,
-  titleX: .040, titleY: .421, titleWidth: .224, titleHeight: .244, titleRotation: -.105,
+  titleX: .040, titleWidth: .224,
   left: [[-.055, .990], [0, .946], [.10, .873], [.20, .799], [.286, .735]],
   right: [[.967, 1.055], [.908, 1], [.870, .947], [.830, .898], [.800, .853], [.780, .804], [.776, .770]],
   roof: [[-.15, .09], [.286, .202], [.45, .177], [.60, .162], [.739, .155], [1.15, .08]],
@@ -35,28 +36,29 @@ export function courtyardTitleLines(title) {
 
 function createTitleTexture(title) {
   const canvas = document.createElement("canvas");
-  canvas.width = 1024;
-  canvas.height = 560;
+  canvas.width = titlePixels.width;
+  canvas.height = titlePixels.height;
   const context = canvas.getContext("2d");
   if (context) {
     const lines = courtyardTitleLines(title);
-    context.font = "600 198px " + titleFont;
-    context.textBaseline = "alphabetic";
+    const fontSize = 198;
+    context.font = `600 ${fontSize}px ${titleFont}`;
     const lineWidth = Math.max(...lines.map(line => context.measureText(line).width));
-    const horizontalScale = Math.min(1, (canvas.width - 64) / Math.max(lineWidth, 1));
+    const fittedSize = fontSize * Math.min(1, (canvas.width - 64) / Math.max(lineWidth, 1));
+    context.font = `600 ${fittedSize}px ${titleFont}`;
+    context.textBaseline = "alphabetic";
     context.translate(22, 0);
-    context.scale(horizontalScale, 1);
 
     for (let index = 0; index < lines.length; index++) {
       const line = lines[index];
       const baseline = lines.length === 2 ? 216 + 241 * index : 354;
       context.save();
-      context.shadowColor = "#181008df";
-      context.shadowBlur = 13;
-      context.shadowOffsetX = 8;
-      context.shadowOffsetY = 12;
+      context.shadowColor = "#181008bf";
+      context.shadowBlur = 8;
+      context.shadowOffsetX = 4;
+      context.shadowOffsetY = 6;
       context.fillStyle = "#684325";
-      context.fillText(line, 7, baseline + 7);
+      context.fillText(line, 3, baseline + 4);
       context.restore();
 
       context.lineWidth = 2.4;
@@ -78,11 +80,9 @@ function createTitleTexture(title) {
 
 const projectionFragment = [
   "varying vec3 vCourtWorld;",
-  "uniform sampler2D courtImage, courtTitle;",
+  "uniform sampler2D courtImage;",
   "uniform vec3 courtEye, courtForward, courtRight;",
-  "uniform vec2 courtLens, courtEntrance, courtPhotoGuide, courtTitleCenter, courtTitleSize;",
-  "uniform vec4 courtWallLight;",
-  "uniform float courtTitleRotation, courtImageAspect;",
+  "uniform vec2 courtLens, courtEntrance, courtPhotoGuide;",
   "vec2 courtLocalFloor() {",
   "  vec3 relative = vCourtWorld - courtEye;",
   "  return vec2(dot(relative, courtRight), dot(relative, courtForward));",
@@ -91,32 +91,41 @@ const projectionFragment = [
   "  return .5 + .5 * vec2(point.x, vCourtWorld.y - courtEye.y) / (max(.001, point.y) * courtLens);",
   "}",
   "vec3 courtColor(vec2 uv) {",
-  "  vec3 color = texture2D(courtImage, clamp(uv, 0., 1.)).rgb;",
-  "  if (courtWallLight.w < .5) return color;",
-  "  float spread = mix(.026, .114, clamp((courtWallLight.y - uv.y) / .36, 0., 1.));",
-  "  vec2 lightDelta = (uv - courtWallLight.xy) / vec2(spread, .30);",
-  "  float wash = exp(-dot(lightDelta, lightDelta)) * (1. - smoothstep(courtWallLight.z - .035, courtWallLight.z, uv.x));",
-  "  color += vec3(.220, .099, .035) * wash;",
-  "  vec2 relative = (uv - courtTitleCenter) * vec2(courtImageAspect, 1.);",
-  "  float c = cos(courtTitleRotation), s = sin(courtTitleRotation);",
-  "  vec2 glyph = mat2(c, -s, s, c) * relative / courtTitleSize + .5;",
-  "  vec4 text = texture2D(courtTitle, clamp(glyph, 0., 1.));",
-  "  return mix(color, text.rgb, text.a);",
+  "  return texture2D(courtImage, clamp(uv, 0., 1.)).rgb;",
   "}",
   "float courtSides(vec2 uv) {",
   "  return smoothstep(-.055, 0., min(uv.x, 1. - uv.x));",
   "}",
 ].join("\n");
 
-function applyProjection(material, uniforms, ground) {
-  material.customProgramCacheKey = () => ground ? "courtyard-floor" : "courtyard-backdrop";
+const inscriptionUniforms = [
+  "uniform sampler2D courtTitle;",
+  "uniform vec3 courtTitleOrigin, courtTitleAlong;",
+  "uniform vec2 courtTitleSize;",
+  "uniform bool courtTitleVisible;",
+].join("\n");
+
+const inscriptionSample = [
+  "if (courtTitleVisible) {",
+  "  vec3 relative = vCourtWorld - courtTitleOrigin;",
+  "  vec2 sign = vec2(dot(relative, courtTitleAlong), relative.y) / courtTitleSize;",
+  "  vec2 light = (sign - vec2(-.15, .62)) / vec2(.60, 1.14);",
+  "  float wash = exp(-dot(light, light));",
+  "  vec4 glyph = texture2D(courtTitle, clamp(sign + .5, 0., 1.));",
+  "  gl_FragColor.rgb = mix(gl_FragColor.rgb + vec3(.135, .072, .032) * wash, glyph.rgb, glyph.a);",
+  "}",
+].join("\n");
+
+function applyProjection(material, uniforms, surface) {
+  const hasInscription = surface === "slate";
+  material.customProgramCacheKey = () => "courtyard-" + surface;
   material.onBeforeCompile = (shader) => {
     Object.assign(shader.uniforms, uniforms);
     shader.vertexShader = "varying vec3 vCourtWorld;\n" + shader.vertexShader.replace(
       "#include <worldpos_vertex>",
       "#include <worldpos_vertex>\nvCourtWorld = (modelMatrix * vec4(transformed, 1.)).xyz;",
     );
-    const sample = ground ? [
+    const sample = surface === "floor" ? [
       "vec2 local = courtLocalFloor();",
       "if (local.y >= courtEntrance.y - .035) {",
       "vec2 uv = courtUv(local);",
@@ -138,10 +147,14 @@ function applyProjection(material, uniforms, ground) {
       "float fade = courtSides(uv) * smoothstep(-.08, 0., min(uv.y, 1. - uv.y));",
       "gl_FragColor.rgb = mix(gl_FragColor.rgb, courtColor(uv), fade);",
     ].join("\n");
-    shader.fragmentShader = projectionFragment + "\n" + shader.fragmentShader.replace(
-      "#include <tonemapping_fragment>",
-      "#include <tonemapping_fragment>\n" + sample,
-    );
+    shader.fragmentShader = [
+      projectionFragment,
+      hasInscription ? inscriptionUniforms : "",
+      shader.fragmentShader.replace(
+        "#include <tonemapping_fragment>",
+        ["#include <tonemapping_fragment>", sample, hasInscription ? inscriptionSample : ""].join("\n"),
+      ),
+    ].join("\n");
   };
 }
 
@@ -185,26 +198,25 @@ export function createCourtyard(scene, texture, title) {
     courtLens: { value: new THREE.Vector2(1, 1) },
     courtEntrance: { value: new THREE.Vector2(contact.dot(right), contact.dot(forward)) },
     courtPhotoGuide: { value: new THREE.Vector2() },
-    courtTitleCenter: { value: new THREE.Vector2() },
-    courtTitleSize: { value: new THREE.Vector2() },
-    courtTitleRotation: { value: 0 },
-    courtImageAspect: { value: wide.aspect },
-    courtWallLight: { value: new THREE.Vector4(.103, .835, .282, 0) },
+    courtTitleOrigin: { value: new THREE.Vector3() },
+    courtTitleAlong: { value: new THREE.Vector3() },
+    courtTitleSize: { value: new THREE.Vector2(1, 1) },
+    courtTitleVisible: { value: false },
   };
 
   // Both surfaces use the same fixed projector. The floor is horizontal all the
   // way from the gallery, and the photograph shares its coordinates at the join.
   const backMaterial = new THREE.MeshBasicMaterial({ color: "#5a5046", fog: false, toneMapped: false });
-  applyProjection(backMaterial, uniforms, false);
+  applyProjection(backMaterial, uniforms, "facade");
   const backdrop = new THREE.Mesh(new THREE.PlaneGeometry(backdropSpan * 2, 28), backMaterial);
   backdrop.name = "Courtyard facade";
   backdrop.position.set(target.x, 14, target.z);
   backdrop.lookAt(backdrop.position.clone().sub(forward));
   scene.add(backdrop);
 
-  function shellSurface(name, parameters) {
+  function shellSurface(name, parameters, projection = "facade") {
     const material = new THREE.MeshStandardMaterial({ ...parameters, side: THREE.DoubleSide, roughness: .88 });
-    applyProjection(material, uniforms, false);
+    applyProjection(material, uniforms, projection);
     const surface = new THREE.Mesh(new THREE.BufferGeometry(), material);
     surface.name = name;
     scene.add(surface);
@@ -213,7 +225,7 @@ export function createCourtyard(scene, texture, title) {
 
   const leftWall = shellSurface("Slate jamb and wall", {
     color: "#e0dce0", map: texture("slate.jpg", true), emissive: "#20191a", emissiveIntensity: .7,
-  });
+  }, "slate");
   const rightWall = shellSurface("Walnut return", {
     color: "#a47856", map: texture("walnut-floor.jpg", true), emissive: "#452519", emissiveIntensity: .6,
   });
@@ -258,7 +270,7 @@ export function createCourtyard(scene, texture, title) {
   }
 
   function addFloor(material) {
-    applyProjection(material, uniforms, true);
+    applyProjection(material, uniforms, "floor");
     const opening = [place(path.length, leftEdge), place(path.length, rightEdge)];
     const far = [-backdropSpan, backdropSpan].map(offset => ({
       x: target.x + right.x * offset, z: target.z + right.z * offset,
@@ -279,6 +291,29 @@ export function createCourtyard(scene, texture, title) {
     scene.add(surface);
   }
 
+  function fitInscription(aspect, halfHeight, lensX, lensY) {
+    const visible = aspect > 33 / 25;
+    uniforms.courtTitleVisible.value = visible;
+    if (!visible) return;
+
+    // The sign uses wall coordinates at a constant height. Only the courtyard picture uses camera UVs.
+    const visibleLeft = .5 - halfHeight * aspect / (2 * lensX);
+    const startX = Math.max(wide.titleX, visibleLeft + .025);
+    const endX = Math.min(startX + wide.titleWidth, .277);
+    const [nearU, nearV] = wide.left[0];
+    const [farU, farV] = wide.left.at(-1);
+    const basePoint = (u) => {
+      const v = THREE.MathUtils.lerp(nearV, farV, (u - nearU) / (farU - nearU));
+      return pointOnPhoto([u, v], 0, lensX, lensY);
+    };
+    const first = basePoint(startX);
+    const last = basePoint(endX);
+    const width = first.distanceTo(last);
+    uniforms.courtTitleOrigin.value.copy(first).lerp(last, .5).setY(1.98);
+    uniforms.courtTitleAlong.value.subVectors(last, first).normalize();
+    uniforms.courtTitleSize.value.set(width, width * titlePixels.height / titlePixels.width);
+  }
+
   function fit(aspect, verticalFov) {
     const portrait = aspect < .85;
     const view = portrait ? tall : wide;
@@ -289,16 +324,7 @@ export function createCourtyard(scene, texture, title) {
     uniforms.courtImage.value = panoramas[portrait ? 1 : 0];
     uniforms.courtLens.value.set(lensX, lensY);
     uniforms.courtPhotoGuide.value.set((view.guideX - .5) * 2 * lensX * guideDepth, guideDepth);
-    const showsTitleOnWall = aspect > 33 / 25;
-    const visibleLeft = .5 - halfHeight * aspect / (2 * lensX);
-    const titleX = Math.max(wide.titleX, visibleLeft + .025);
-    const titleWidth = Math.max(.01, Math.min(wide.titleWidth, .277 - titleX));
-    uniforms.courtTitleCenter.value.set(titleX + titleWidth * .5, 1 - wide.titleY);
-    uniforms.courtTitleSize.value.set(titleWidth * wide.aspect, wide.titleHeight * titleWidth / wide.titleWidth);
-    uniforms.courtTitleRotation.value = wide.titleRotation;
-    uniforms.courtWallLight.value.x = titleX + titleWidth * .28;
-    uniforms.courtWallLight.value.w = showsTitleOnWall ? 1 : 0;
-    uniforms.courtImageAspect.value = view.aspect;
+    fitInscription(aspect, halfHeight, lensX, lensY);
     fitShell(view, lensX, lensY);
   }
 
