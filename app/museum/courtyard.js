@@ -12,7 +12,7 @@ const titleFont = '"Hiragino Mincho ProN", "Yu Mincho", "Noto Serif JP", Georgia
 // Coordinates are normalized to the source photograph, measured at the wall and ceiling edges.
 const wide = {
   file: "courtyard.webp", aspect: 1672 / 941, guideX: .623,
-  titleX: .040, titleWidth: .224,
+  titleX: .026, titleWidth: .250,
   left: [[-.055, .990], [0, .946], [.10, .873], [.20, .799], [.286, .735]],
   right: [[.967, 1.055], [.908, 1], [.870, .947], [.830, .898], [.800, .853], [.780, .804], [.776, .770]],
   roof: [[-.15, .09], [.286, .202], [.45, .177], [.60, .162], [.739, .155], [1.15, .08]],
@@ -41,7 +41,7 @@ function createTitleTexture(title) {
   const context = canvas.getContext("2d");
   if (context) {
     const lines = courtyardTitleLines(title);
-    const fontSize = 198;
+    const fontSize = 209;
     context.font = `600 ${fontSize}px ${titleFont}`;
     const lineWidth = Math.max(...lines.map(line => context.measureText(line).width));
     const fittedSize = fontSize * Math.min(1, (canvas.width - 64) / Math.max(lineWidth, 1));
@@ -61,13 +61,13 @@ function createTitleTexture(title) {
       context.fillText(line, 3, baseline + 4);
       context.restore();
 
-      context.lineWidth = 2.4;
-      context.strokeStyle = "#dcac73";
+      context.lineWidth = 2.8;
+      context.strokeStyle = "#edc496";
       context.strokeText(line, 0, baseline);
       const face = context.createLinearGradient(0, baseline - 171, 0, baseline + 14);
-      face.addColorStop(0, "#fff7e4");
-      face.addColorStop(.58, "#f2d9b4");
-      face.addColorStop(1, "#d3a46e");
+      face.addColorStop(0, "#fffaed");
+      face.addColorStop(.58, "#f9e6c5");
+      face.addColorStop(1, "#e4bc87");
       context.fillStyle = face;
       context.fillText(line, 0, baseline);
     }
@@ -112,7 +112,7 @@ const inscriptionSample = [
   "  vec2 light = (sign - vec2(-.15, .62)) / vec2(.60, 1.14);",
   "  float wash = exp(-dot(light, light));",
   "  vec4 glyph = texture2D(courtTitle, clamp(sign + .5, 0., 1.));",
-  "  gl_FragColor.rgb = mix(gl_FragColor.rgb + vec3(.135, .072, .032) * wash, glyph.rgb, glyph.a);",
+  "  gl_FragColor.rgb = mix(gl_FragColor.rgb + vec3(.120, .064, .029) * wash, glyph.rgb, glyph.a);",
   "}",
 ].join("\n");
 
