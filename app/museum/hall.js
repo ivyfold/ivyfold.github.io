@@ -86,9 +86,10 @@ function lightWash(alpha) {
   return [WARM_WASH.r, WARM_WASH.g, WARM_WASH.b, alpha];
 }
 
-function createWalnutSlats(path, texture) {
+function createWalnutSlats(path, texture, start = 0, backingOffset = RIGHT) {
   const pitch = 0.152;
-  const count = Math.ceil(path.length / pitch);
+  const first = Math.ceil(start / pitch);
+  const count = Math.max(0, Math.ceil(path.length / pitch) - first);
   const geometry = new THREE.BoxGeometry(0.064, 4.02, 0.107, 1, 9, 1);
   const positions = geometry.attributes.position;
   const uv = geometry.attributes.uv;
@@ -109,12 +110,13 @@ function createWalnutSlats(path, texture) {
   const grain = new THREE.Color();
 
   for (let i = 0; i < count; i += 1) {
-    const station = path.sample(Math.min(path.length, i * pitch + pitch * 0.5));
-    piece.position.fromArray(offsetPoint(station, RIGHT - 0.051, 2.06));
+    const index = first + i;
+    const station = path.sample(Math.min(path.length, (index + 0.5) * pitch));
+    piece.position.fromArray(offsetPoint(station, backingOffset - 0.051, 2.06));
     piece.rotation.y = Math.atan2(-station.dz, station.dx);
     piece.updateMatrix();
     mesh.setMatrixAt(i, piece.matrix);
-    mesh.setColorAt(i, grain.copy(walnut).multiplyScalar(0.76 + 0.21 * Math.sin(i * 1.17) ** 2 + 0.21 * Math.cos(i * 0.39) ** 4));
+    mesh.setColorAt(i, grain.copy(walnut).multiplyScalar(0.76 + 0.21 * Math.sin(index * 1.17) ** 2 + 0.21 * Math.cos(index * 0.39) ** 4));
   }
   return mesh;
 }
@@ -170,13 +172,13 @@ export function createHall(scene, path, textures = {}, courtyard) {
     emissive: "#261e18",
     emissiveIntensity: 0.68,
   });
-  courtyard.addFloor(floor);
+  const walnut = new THREE.MeshStandardMaterial({ color: "#2d1a14", roughness: 0.84 });
+  const walnutTexture = textures.walnut ?? textures.wood;
   group.add(
     stripMesh(samples, floorSection(LEFT, RIGHT, 0), floor, { repeatEvery: 2.35 }),
     stripMesh(samples, wallSection(LEFT, 0, LOW_CEILING), stone, { reverse: true, repeatEvery: 2.6 }),
-    stripMesh(samples, wallSection(RIGHT, 0, LOW_CEILING),
-      new THREE.MeshStandardMaterial({ color: "#2d1a14", roughness: 0.84 })),
-    createWalnutSlats(path, textures.walnut ?? textures.wood),
+    stripMesh(samples, wallSection(RIGHT, 0, LOW_CEILING), walnut),
+    createWalnutSlats(path, walnutTexture),
   );
 
   const plaster = new THREE.MeshStandardMaterial({
@@ -210,16 +212,24 @@ export function createHall(scene, path, textures = {}, courtyard) {
     stripMesh(samples, floorSection(0.64, 0.676, 0.0018), baseboard),
     stripMesh(samples, floorSection(0.651, 0.665, 0.0026), seam),
   );
+  courtyard.addInterior({
+    stone,
+    floor,
+    walnut,
+    baseboard,
+    createSlats: (extension) => createWalnutSlats(extension, walnutTexture, path.length, 0),
+  });
   ceilingSpots(group, path);
 
   const wash = glowMaterial();
+  const interiorLight = (s) => 1 - THREE.MathUtils.smoothstep(s, path.length - 1.3, path.length);
   const wallGlow = stripMesh(samples, wallSection(LEFT + 0.006, 0.076, LOW_CEILING - 0.007, 24), wash, {
     reverse: true,
     rgba(s, { y }) {
       const distance = periodicDistance(s, 3.85, 1.65);
       const beam = Math.exp(-((distance / (0.15 + 0.77 * y)) ** 2) - 3.5 * y);
       const cove = 0.052 * Math.exp(-(LOW_CEILING - y) * 4.1);
-      return lightWash(0.43 * beam + cove);
+      return lightWash(0.43 * beam * interiorLight(s) + cove);
     },
   });
   const floorGlow = stripMesh(samples, floorSection(LEFT, RIGHT, 0.004, 32), wash, {
@@ -228,7 +238,7 @@ export function createHall(scene, path, textures = {}, courtyard) {
       const leftFalloff = Math.exp(-(((offset - LEFT) / 0.69) ** 2) - (leftDistance / 0.34) ** 2);
       const walnutFalloff = Math.exp(-(((offset - RIGHT + 0.16) / 0.63) ** 2));
       const floorReflection = Math.exp(-(((offset - LEFT - 0.65) / 1.23) ** 2) - (leftDistance / 0.49) ** 2);
-      return lightWash(0.34 * leftFalloff + 0.19 * walnutFalloff + 0.085 * floorReflection);
+      return lightWash((0.34 * leftFalloff + 0.19 * walnutFalloff + 0.085 * floorReflection) * interiorLight(s));
     },
   });
   const roofGlow = stripMesh(samples, floorSection(-2.035, rightRoof - 0.005, HIGH_CEILING - 0.003, 18), wash, {

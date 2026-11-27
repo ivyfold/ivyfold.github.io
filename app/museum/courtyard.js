@@ -11,14 +11,14 @@ const titlePixels = { width: 1536, height: 560 };
 const titleFont = '"Hiragino Mincho ProN", "Yu Mincho", "Noto Serif JP", Georgia, serif';
 // Coordinates are normalized to the source photograph, measured at the wall and ceiling edges.
 const wide = {
-  file: "courtyard.webp", aspect: 1672 / 941, guideX: .623,
+  file: "courtyard.webp", aspect: 1672 / 941, guideX: .623, guideCurve: .28,
   titleX: .026, titleWidth: .250,
   left: [[-.055, .990], [0, .946], [.10, .873], [.20, .799], [.286, .735]],
   right: [[.967, 1.055], [.908, 1], [.870, .947], [.830, .898], [.800, .853], [.780, .804], [.776, .770]],
   roof: [[-.15, .09], [.286, .202], [.45, .177], [.60, .162], [.739, .155], [1.15, .08]],
 };
 const tall = {
-  file: "courtyard-portrait.webp", aspect: 864 / 1536, guideX: .706,
+  file: "courtyard-portrait.webp", aspect: 864 / 1536, guideX: .706, guideCurve: .19,
   left: [[-.07, .778], [0, .748], [.062, .722]],
   right: [[1.06, .93], [1, .852], [.972, .831], [.950, .803], [.944, .782]],
   roof: [[-.15, .13], [.062, .177], [.32, .161], [.60, .154], [.80, .160], [.90, .179], [.940, .219], [1.15, .125]],
@@ -129,20 +129,22 @@ function applyProjection(material, uniforms, surface) {
       "vec2 local = courtLocalFloor();",
       "if (local.y >= courtEntrance.y - .035) {",
       "vec2 uv = courtUv(local);",
-      "float photoAmount = courtSides(uv) * smoothstep(0., .095, uv.y);",
-      "float progress = smoothstep(courtEntrance.y, courtPhotoGuide.y, local.y);",
-      "float guideAtPhoto = courtPhotoGuide.x * local.y / courtPhotoGuide.y;",
+      "float photoAmount = courtSides(uv) * smoothstep(0., .20, uv.y);",
+      "float photoDepth = courtEye.y / courtLens.y;",
+      "float progress = smoothstep(courtEntrance.y, photoDepth, local.y);",
+      "float floorU = courtPhotoGuide.x + courtPhotoGuide.y * max(0., uv.y) * max(0., uv.y);",
+      "float guideAtPhoto = (2. * floorU - 1.) * courtLens.x * local.y;",
       "float guideX = mix(courtEntrance.x, guideAtPhoto, progress);",
       "float guideDistance = abs(local.x - guideX);",
-      "float guideExtent = step(courtEntrance.y, local.y) * (1. - smoothstep(.10, .13, uv.y));",
+      "float guideExtent = step(courtEntrance.y, local.y) * (1. - smoothstep(.12, .22, uv.y));",
       "float border = (1. - smoothstep(.010, .018, guideDistance)) * guideExtent;",
       "float brass = (1. - smoothstep(.005, .009, guideDistance)) * guideExtent;",
-      "vec3 floorColor = mix(gl_FragColor.rgb, vec3(.020, .012, .007), .76 * border);",
-      "vec3 brassColor = mix(vec3(.11, .062, .027), vec3(.24, .145, .061), progress);",
-      "floorColor = mix(floorColor, brassColor, .84 * brass);",
-      "gl_FragColor.rgb = mix(floorColor, courtColor(uv), photoAmount);",
+      "vec3 floorColor = mix(gl_FragColor.rgb, courtColor(uv), photoAmount);",
+      "floorColor = mix(floorColor, vec3(.020, .012, .007), .76 * border);",
+      "vec3 brassColor = mix(vec3(.155, .091, .042), vec3(.24, .145, .061), progress);",
+      "gl_FragColor.rgb = mix(floorColor, brassColor, .84 * brass);",
       "}",
-    ].join("\n") : [
+    ].join("\n") : hasInscription ? "" : [
       "vec2 uv = courtUv(courtLocalFloor());",
       "float fade = courtSides(uv) * smoothstep(-.08, 0., min(uv.y, 1. - uv.y));",
       "gl_FragColor.rgb = mix(gl_FragColor.rgb, courtColor(uv), fade);",
@@ -158,14 +160,17 @@ function applyProjection(material, uniforms, surface) {
   };
 }
 
-function stripBetween(first, second) {
+function stripBetween(first, second, tiling) {
   const positions = [];
   const uvs = [];
   const triangles = [];
   first.forEach((point, index) => {
     const next = second[index];
     positions.push(point.x, point.y, point.z, next.x, next.y, next.z);
-    uvs.push(index * .75, 0, index * .75, 1);
+    const u = tiling ? (path.length + tiling.step * index) / tiling.repeat : index * .75;
+    const v1 = tiling ? point.y / tiling.repeat : 0;
+    const v2 = tiling ? next.y / tiling.repeat : 1;
+    uvs.push(u, v1, u, v2);
     if (index > 0) {
       const a = 2 * (index - 1);
       triangles.push(a, a + 2, a + 1, a + 1, a + 2, a + 3);
@@ -204,8 +209,7 @@ export function createCourtyard(scene, texture, title) {
     courtTitleVisible: { value: false },
   };
 
-  // Both surfaces use the same fixed projector. The floor is horizontal all the
-  // way from the gallery, and the photograph shares its coordinates at the join.
+  // The courtyard view and its sunlit floor share a fixed projector beyond the gallery.
   const backMaterial = new THREE.MeshBasicMaterial({ color: "#5a5046", fog: false, toneMapped: false });
   applyProjection(backMaterial, uniforms, "facade");
   const backdrop = new THREE.Mesh(new THREE.PlaneGeometry(backdropSpan * 2, 28), backMaterial);
@@ -214,24 +218,20 @@ export function createCourtyard(scene, texture, title) {
   backdrop.lookAt(backdrop.position.clone().sub(forward));
   scene.add(backdrop);
 
-  function shellSurface(name, parameters, projection = "facade") {
-    const material = new THREE.MeshStandardMaterial({ ...parameters, side: THREE.DoubleSide, roughness: .88 });
-    applyProjection(material, uniforms, projection);
+  function shellSurface(name, material) {
     const surface = new THREE.Mesh(new THREE.BufferGeometry(), material);
     surface.name = name;
     scene.add(surface);
     return surface;
   }
 
-  const leftWall = shellSurface("Slate jamb and wall", {
-    color: "#e0dce0", map: texture("slate.jpg", true), emissive: "#20191a", emissiveIntensity: .7,
-  }, "slate");
-  const rightWall = shellSurface("Walnut return", {
-    color: "#a47856", map: texture("walnut-floor.jpg", true), emissive: "#452519", emissiveIntensity: .6,
+  let interior;
+  let rightSlats;
+  const ceilingMaterial = new THREE.MeshStandardMaterial({
+    color: "#b9987c", emissive: "#775035", emissiveIntensity: .72, side: THREE.DoubleSide, roughness: .88,
   });
-  const ceiling = shellSurface("Ceiling above the courtyard threshold", {
-    color: "#b9987c", emissive: "#775035", emissiveIntensity: .72,
-  });
+  applyProjection(ceilingMaterial, uniforms, "facade");
+  const ceiling = shellSurface("Ceiling above the courtyard threshold", ceilingMaterial);
 
   function atOpening(offset, y) {
     const point = place(path.length, offset);
@@ -250,18 +250,86 @@ export function createCourtyard(scene, texture, title) {
     return eye.clone().addScaledVector(forward, along).addScaledVector(right, along * (2 * u - 1) * lensX).setY(height);
   }
 
-  function setSurface(mesh, first, second) {
+  function setSurface(mesh, first, second, tiling) {
     mesh.geometry.dispose();
-    mesh.geometry = stripBetween(first, second);
+    mesh.geometry = stripBetween(first, second, tiling);
+  }
+
+  function wallCurve(points, edge, lensX, lensY) {
+    const join = atOpening(edge, 0);
+    const measured = points.map(point => pointOnPhoto(point, 0, lensX, lensY));
+    const station = path.sample(path.length);
+    const from = new THREE.Vector3(station.dx, 0, station.dz);
+    // Bridge the straight slate face. Carry the curved timber wall in one arc to the opening.
+    const curvedTimber = edge === rightEdge;
+    const end = curvedTimber ? measured.at(-1) : measured[0];
+    const into = curvedTimber
+      ? end.clone().sub(measured.at(-2)).normalize()
+      : measured[1].clone().sub(end).normalize();
+    const handle = join.distanceTo(end) / 3;
+    const curve = new THREE.CurvePath();
+    curve.add(new THREE.CubicBezierCurve3(
+      join, join.clone().addScaledVector(from, handle), end.clone().addScaledVector(into, -handle), end,
+    ));
+    if (!curvedTimber) curve.add(new THREE.CatmullRomCurve3(measured));
+    return curve;
+  }
+
+  function fitWall(wall, baseboard, curve, inward, trimHeight) {
+    const length = curve.getLength();
+    const divisions = Math.ceil(length / .14);
+    const ground = [];
+    const trim = [];
+    for (let i = 0; i <= divisions; i++) {
+      const t = i / divisions;
+      const point = curve.getPoint(t);
+      const direction = curve.getTangent(t);
+      ground.push(point);
+      trim.push(point.clone().addScaledVector(new THREE.Vector3(-direction.z, 0, direction.x), inward));
+    }
+    const upper = ground.map(point => point.clone().setY(openingCeiling));
+    const trimTop = trim.map(point => point.clone().setY(trimHeight));
+    if (inward > 0) {
+      setSurface(wall, ground, upper, { repeat: 2.6, step: length / divisions });
+      setSurface(baseboard, trim, trimTop);
+    } else {
+      setSurface(wall, upper, ground);
+      setSurface(baseboard, trimTop, trim);
+    }
+    return trim;
+  }
+
+  function removeSlats() {
+    if (!rightSlats) return;
+    scene.remove(rightSlats);
+    rightSlats.geometry.dispose();
+    rightSlats.material.dispose();
+    rightSlats.dispose();
+    rightSlats = null;
   }
 
   function fitShell(view, lensX, lensY) {
-    const fitWall = (mesh, points, edge) => {
-      const ground = [atOpening(edge, 0), ...points.map(point => pointOnPhoto(point, 0, lensX, lensY))];
-      setSurface(mesh, ground, ground.map(point => point.clone().setY(openingCeiling)));
-    };
-    fitWall(leftWall, view.left, leftEdge);
-    fitWall(rightWall, view.right, rightEdge);
+    const left = wallCurve(view.left, leftEdge, lensX, lensY);
+    const right = wallCurve(view.right, rightEdge, lensX, lensY);
+    fitWall(interior.leftWall, interior.leftTrim, left, .024, .095);
+    const rightTrim = fitWall(interior.rightWall, interior.rightTrim, right, -.106, .06);
+    // A narrow timber cap joins the slats to the ceiling along the same curve.
+    setSurface(interior.rightCap,
+      rightTrim.map(point => point.clone().setY(openingCeiling + .018)),
+      rightTrim.map(point => point.clone().setY(openingCeiling - .065)),
+    );
+    removeSlats();
+    const length = right.getLength();
+    rightSlats = interior.createSlats({
+      length: path.length + length,
+      sample(distance) {
+        const t = THREE.MathUtils.clamp((distance - path.length) / length, 0, 1);
+        const position = right.getPoint(t);
+        const direction = right.getTangent(t);
+        return { x: position.x, z: position.z, dx: direction.x, dz: direction.z };
+      },
+    });
+    scene.add(rightSlats);
     const roofEdge = view.roof.map(point => pointOnPhoto(point, openingCeiling, lensX, lensY));
     const nearRoof = roofEdge.map((_, index) => atOpening(
       THREE.MathUtils.lerp(leftEdge, rightEdge, index / (roofEdge.length - 1)), openingCeiling,
@@ -280,7 +348,7 @@ export function createCourtyard(scene, texture, title) {
       [...opening, ...far].flatMap(({ x, z }) => [x, 0, z]), 3,
     ));
     floor.setAttribute("uv", new THREE.Float32BufferAttribute([
-      path.length / 2.35, -3.1 / 2.35, path.length / 2.35, 2.03 / 2.35,
+      path.length / 2.35, leftEdge / 2.35, path.length / 2.35, rightEdge / 2.35,
       (path.length + backdropDepth) / 2.35, -backdropSpan / 2.35,
       (path.length + backdropDepth) / 2.35, backdropSpan / 2.35,
     ], 2));
@@ -289,6 +357,19 @@ export function createCourtyard(scene, texture, title) {
     const surface = new THREE.Mesh(floor, material);
     surface.name = "Gallery floor continuing into the courtyard";
     scene.add(surface);
+  }
+
+  function addInterior({ stone, floor, walnut, baseboard, createSlats }) {
+    applyProjection(stone, uniforms, "slate");
+    addFloor(floor);
+    interior = {
+      leftWall: shellSurface("Slate continuing to the courtyard", stone),
+      rightWall: shellSurface("Walnut backing continuing to the courtyard", walnut),
+      leftTrim: shellSurface("Left gallery baseboard continuation", baseboard),
+      rightTrim: shellSurface("Right gallery baseboard continuation", baseboard),
+      rightCap: shellSurface("Walnut slat cap at the courtyard", walnut),
+      createSlats,
+    };
   }
 
   function fitInscription(aspect, halfHeight, lensX, lensY) {
@@ -320,13 +401,20 @@ export function createCourtyard(scene, texture, title) {
     const halfHeight = Math.tan(THREE.MathUtils.degToRad(verticalFov) / 2);
     const lensY = Math.max(halfHeight, halfHeight * aspect / view.aspect) * 1.008;
     const lensX = lensY * view.aspect;
-    const guideDepth = eyeHeight / lensY;
     uniforms.courtImage.value = panoramas[portrait ? 1 : 0];
     uniforms.courtLens.value.set(lensX, lensY);
-    uniforms.courtPhotoGuide.value.set((view.guideX - .5) * 2 * lensX * guideDepth, guideDepth);
+    uniforms.courtPhotoGuide.value.set(view.guideX, view.guideCurve);
     fitInscription(aspect, halfHeight, lensX, lensY);
     fitShell(view, lensX, lensY);
   }
 
-  return { target, addFloor, fit, dispose: () => titleTexture.dispose() };
+  return {
+    target,
+    addInterior,
+    fit,
+    dispose() {
+      titleTexture.dispose();
+      rightSlats?.dispose();
+    },
+  };
 }
